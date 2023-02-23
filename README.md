@@ -1,3 +1,9 @@
+# Zelda3 for 3DS
+
+This project aims to get Zelda 3 running natively on 3DS. This is a port of the source code decompiled by snesrev.
+
+Below is the original REAMDE for snesrev's decomp project. It has not been updated for 3DS instructions yet.
+
 # Zelda3
 A reimplementation of Zelda 3.
 
