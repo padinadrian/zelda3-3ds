@@ -1,0 +1,10 @@
+# Build output
+build
+*.d
+*.o
+*.a
+*.elf
+*.3dsx
+*.3ds
+*.cia
+
