@@ -15,36 +15,36 @@ enum {
 
 Config g_config;
 
-#define REMAP_SDL_KEYCODE(key) ((key) & SDLK_SCANCODE_MASK ? kKeyMod_ScanCode : 0) | (key) & (kKeyMod_ScanCode - 1)
-#define _(x) REMAP_SDL_KEYCODE(x)
-#define S(x) REMAP_SDL_KEYCODE(x) | kKeyMod_Shift
-#define A(x) REMAP_SDL_KEYCODE(x) | kKeyMod_Alt
-#define C(x) REMAP_SDL_KEYCODE(x) | kKeyMod_Ctrl
-#define N 0
-static const uint16 kDefaultKbdControls[kKeys_Total] = {
-  0,
-  // Controls
-  _(SDLK_UP), _(SDLK_DOWN), _(SDLK_LEFT), _(SDLK_RIGHT), _(SDLK_RSHIFT), _(SDLK_RETURN), _(SDLK_x), _(SDLK_z), _(SDLK_s), _(SDLK_a), _(SDLK_c), _(SDLK_v),
-  // LoadState
-  _(SDLK_F1), _(SDLK_F2), _(SDLK_F3), _(SDLK_F4), _(SDLK_F5), _(SDLK_F6), _(SDLK_F7), _(SDLK_F8), _(SDLK_F9), _(SDLK_F10), N, N, N, N, N, N, N, N, N, N,
-  // SaveState
-  S(SDLK_F1), S(SDLK_F2), S(SDLK_F3), S(SDLK_F4), S(SDLK_F5), S(SDLK_F6), S(SDLK_F7), S(SDLK_F8), S(SDLK_F9), S(SDLK_F10), N, N, N, N, N, N, N, N, N, N,
-  // Replay State
-  C(SDLK_F1), C(SDLK_F2), C(SDLK_F3), C(SDLK_F4), C(SDLK_F5), C(SDLK_F6), C(SDLK_F7), C(SDLK_F8), C(SDLK_F9), C(SDLK_F10), N, N, N, N, N, N, N, N, N, N,
-  // Load Ref State
-  _(SDLK_1), _(SDLK_2), _(SDLK_3), _(SDLK_4), _(SDLK_5), _(SDLK_6), _(SDLK_7), _(SDLK_8), _(SDLK_9), _(SDLK_0), _(SDLK_MINUS), _(SDLK_EQUALS), _(SDLK_BACKSPACE), N, N, N, N, N, N, N,
-  // Replay Ref State
-  C(SDLK_1), C(SDLK_2), C(SDLK_3), C(SDLK_4), C(SDLK_5), C(SDLK_6), C(SDLK_7), C(SDLK_8), C(SDLK_9), C(SDLK_0), C(SDLK_MINUS), C(SDLK_EQUALS), C(SDLK_BACKSPACE), N, N, N, N, N, N, N,
-  // CheatLife, CheatKeys, CheatEquipment, CheatWalkThroughWalls
-  _(SDLK_w), _(SDLK_o), S(SDLK_w), C(SDLK_e),
-  // ClearKeyLog, StopReplay, Fullscreen, Reset, Pause, PauseDimmed, Turbo, ReplayTurbo, WindowBigger, WindowSmaller, DisplayPerf, ToggleRenderer
-  _(SDLK_k), _(SDLK_l), A(SDLK_RETURN), C(SDLK_r), S(SDLK_p), _(SDLK_p), _(SDLK_TAB), _(SDLK_t), N, N, _(SDLK_f), _(SDLK_r),
-};
-#undef _
-#undef A
-#undef C
-#undef S
-#undef N
+// #define REMAP_SDL_KEYCODE(key) ((key) & SDLK_SCANCODE_MASK ? kKeyMod_ScanCode : 0) | (key) & (kKeyMod_ScanCode - 1)
+// #define _(x) REMAP_SDL_KEYCODE(x)
+// #define S(x) REMAP_SDL_KEYCODE(x) | kKeyMod_Shift
+// #define A(x) REMAP_SDL_KEYCODE(x) | kKeyMod_Alt
+// #define C(x) REMAP_SDL_KEYCODE(x) | kKeyMod_Ctrl
+// #define N 0
+// static const uint16 kDefaultKbdControls[kKeys_Total] = {
+//   0,
+//   // Controls
+//   _(SDLK_UP), _(SDLK_DOWN), _(SDLK_LEFT), _(SDLK_RIGHT), _(SDLK_RSHIFT), _(SDLK_RETURN), _(SDLK_x), _(SDLK_z), _(SDLK_s), _(SDLK_a), _(SDLK_c), _(SDLK_v),
+//   // LoadState
+//   _(SDLK_F1), _(SDLK_F2), _(SDLK_F3), _(SDLK_F4), _(SDLK_F5), _(SDLK_F6), _(SDLK_F7), _(SDLK_F8), _(SDLK_F9), _(SDLK_F10), N, N, N, N, N, N, N, N, N, N,
+//   // SaveState
+//   S(SDLK_F1), S(SDLK_F2), S(SDLK_F3), S(SDLK_F4), S(SDLK_F5), S(SDLK_F6), S(SDLK_F7), S(SDLK_F8), S(SDLK_F9), S(SDLK_F10), N, N, N, N, N, N, N, N, N, N,
+//   // Replay State
+//   C(SDLK_F1), C(SDLK_F2), C(SDLK_F3), C(SDLK_F4), C(SDLK_F5), C(SDLK_F6), C(SDLK_F7), C(SDLK_F8), C(SDLK_F9), C(SDLK_F10), N, N, N, N, N, N, N, N, N, N,
+//   // Load Ref State
+//   _(SDLK_1), _(SDLK_2), _(SDLK_3), _(SDLK_4), _(SDLK_5), _(SDLK_6), _(SDLK_7), _(SDLK_8), _(SDLK_9), _(SDLK_0), _(SDLK_MINUS), _(SDLK_EQUALS), _(SDLK_BACKSPACE), N, N, N, N, N, N, N,
+//   // Replay Ref State
+//   C(SDLK_1), C(SDLK_2), C(SDLK_3), C(SDLK_4), C(SDLK_5), C(SDLK_6), C(SDLK_7), C(SDLK_8), C(SDLK_9), C(SDLK_0), C(SDLK_MINUS), C(SDLK_EQUALS), C(SDLK_BACKSPACE), N, N, N, N, N, N, N,
+//   // CheatLife, CheatKeys, CheatEquipment, CheatWalkThroughWalls
+//   _(SDLK_w), _(SDLK_o), S(SDLK_w), C(SDLK_e),
+//   // ClearKeyLog, StopReplay, Fullscreen, Reset, Pause, PauseDimmed, Turbo, ReplayTurbo, WindowBigger, WindowSmaller, DisplayPerf, ToggleRenderer
+//   _(SDLK_k), _(SDLK_l), A(SDLK_RETURN), C(SDLK_r), S(SDLK_p), _(SDLK_p), _(SDLK_TAB), _(SDLK_t), N, N, _(SDLK_f), _(SDLK_r),
+// };
+// #undef _
+// #undef A
+// #undef C
+// #undef S
+// #undef N
 
 typedef struct KeyNameId {
   const char *name;
@@ -106,15 +106,15 @@ static int KeyMapHash_Find(uint16 key) {
   return 0;
 }
 
-int FindCmdForSdlKey(SDL_Keycode code, SDL_Keymod mod) {
-  if (code & ~(SDLK_SCANCODE_MASK | 0x1ff))
-    return 0;
-  int key = mod & KMOD_ALT ? kKeyMod_Alt : 0;
-  key |= mod & KMOD_CTRL ? kKeyMod_Ctrl : 0;
-  key |= mod & KMOD_SHIFT ? kKeyMod_Shift : 0;
-  key |= REMAP_SDL_KEYCODE(code);
-  return KeyMapHash_Find(key);
-}
+// int FindCmdForSdlKey(SDL_Keycode code, SDL_Keymod mod) {
+//   if (code & ~(SDLK_SCANCODE_MASK | 0x1ff))
+//     return 0;
+//   int key = mod & KMOD_ALT ? kKeyMod_Alt : 0;
+//   key |= mod & KMOD_CTRL ? kKeyMod_Ctrl : 0;
+//   key |= mod & KMOD_SHIFT ? kKeyMod_Shift : 0;
+//   key |= REMAP_SDL_KEYCODE(code);
+//   return KeyMapHash_Find(key);
+// }
 
 static void ParseKeyArray(char *value, int cmd, int size) {
   char *s;
@@ -134,13 +134,14 @@ static void ParseKeyArray(char *value, int cmd, int size) {
         break;
       }
     }
-    SDL_Keycode key = SDL_GetKeyFromName(s);
-    if (key == SDLK_UNKNOWN) {
-      fprintf(stderr, "Unknown key: '%s'\n", s);
-      continue;
-    }
-    if (!KeyMapHash_Add(key_with_mod | REMAP_SDL_KEYCODE(key), cmd))
-      fprintf(stderr, "Duplicate key: '%s'\n", s);
+    // SDL_Keycode key = SDL_GetKeyFromName(s);
+    // if (key == SDLK_UNKNOWN) {
+    //   fprintf(stderr, "Unknown key: '%s'\n", s);
+    //   continue;
+    // }
+    // if (!KeyMapHash_Add(key_with_mod | REMAP_SDL_KEYCODE(key), cmd)) {
+    //   fprintf(stderr, "Duplicate key: '%s'\n", s);
+    // }
   }
 }
 
@@ -250,8 +251,9 @@ static void RegisterDefaultKeys() {
   for (int i = 1; i < countof(kKeyNameId); i++) {
     if (!has_keynameid[i]) {
       int size = kKeyNameId[i].size, k = kKeyNameId[i].id;
-      for (int j = 0; j < size; j++, k++)
-        KeyMapHash_Add(kDefaultKbdControls[k], k);
+      for (int j = 0; j < size; j++, k++) {
+        // KeyMapHash_Add(kDefaultKbdControls[k], k);
+      }
     }
   }
   if (!has_joypad_controls) {

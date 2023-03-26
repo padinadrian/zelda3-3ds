@@ -36,10 +36,10 @@ static void GL_APIENTRY MessageCallback(GLenum source,
 
 static bool OpenGLRenderer_Init(SDL_Window *window) {
   g_window = window;
-  SDL_GLContext context = SDL_GL_CreateContext(window);
-  (void)context;
+  // SDL_GLContext context = SDL_GL_CreateContext(window);
+  // (void)context;
 
-  SDL_GL_SetSwapInterval(1);
+  // SDL_GL_SetSwapInterval(1);
   ogl_LoadFunctions();
 
   if (!ogl_IsVersionGEQ(3, 3))
@@ -162,7 +162,7 @@ static void OpenGLRenderer_BeginDraw(int width, int height, uint8 **pixels, int 
 static void OpenGLRenderer_EndDraw() {
   int drawable_width, drawable_height;
 
-  SDL_GL_GetDrawableSize(g_window, &drawable_width, &drawable_height);
+  // SDL_GL_GetDrawableSize(g_window, &drawable_width, &drawable_height);
   
   int viewport_width = drawable_width, viewport_height = drawable_height;
 
@@ -200,7 +200,7 @@ static void OpenGLRenderer_EndDraw() {
     GlslShader_Render(g_glsl_shader, &g_texture, viewport_x, viewport_y, viewport_width, viewport_height);
   }
 
-  SDL_GL_SwapWindow(g_window);
+  // SDL_GL_SwapWindow(g_window);
 }
 
 
@@ -212,9 +212,9 @@ static const struct RendererFuncs kOpenGLRendererFuncs = {
 };
 
 void OpenGLRenderer_Create(struct RendererFuncs *funcs) {
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
   *funcs = kOpenGLRendererFuncs;
 }
 

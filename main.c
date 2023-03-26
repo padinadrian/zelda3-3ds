@@ -29,6 +29,16 @@
 
 static bool g_run_without_emu = 0;
 
+#ifdef __3DS__
+
+
+#undef main
+int main(int argc, char** argv) {
+  return 0;
+}
+
+#else
+
 void ShaderInit();
 
 // Forwards
@@ -862,3 +872,5 @@ static void SwitchDirectory() {
       pos--;
   }
 }
+
+#endif
