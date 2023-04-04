@@ -68,9 +68,6 @@ enum {
 
 /* ===== Data ===== */
 
-#define WIDTH 240
-#define HEIGHT 400
-
 static bool g_run_without_emu = 1;
 
 static const char kWindowTitle[] = "The Legend of Zelda: A Link to the Past";
@@ -818,7 +815,10 @@ static void SwitchDirectory() {
 /* ===== MAIN ===== */
 
 
-void fill_buffer(u32* buffer, u32 color) {
+#define WIDTH 240
+#define HEIGHT 400
+
+static void fill_buffer(u32* buffer, u32 color) {
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
             buffer[x + (y * WIDTH)] = color;
@@ -833,7 +833,7 @@ int main3ds(int args, char** argv) {
     // Initialize graphics
     gfxInitDefault();
     gfxInit(GSP_RGBA8_OES, GSP_RGBA8_OES, false);
-    gfxSetDoubleBuffering(GFX_TOP, 1);
+    gfxSetDoubleBuffering(GFX_TOP, false);
     consoleInit(GFX_BOTTOM, NULL);
 
     printf("\x1b[1;1HStarting up... \x1b[K");
@@ -847,21 +847,13 @@ int main3ds(int args, char** argv) {
     //     gspWaitForVBlank();
     // }
 
-    sleep(1);
-
     // Initialize the game
     ParseConfigFile(NULL);
-
     printf("\x1b[1;1H LoadAssets \x1b[K");
-    sleep(1);
     LoadAssets();
-
     printf("\x1b[1;1H LoadLinkGraphics \x1b[K");
-    sleep(1);
     LoadLinkGraphics();
-
     printf("\x1b[1;1H ZeldaInitialize \x1b[K");
-    sleep(1);
     ZeldaInitialize();
 
     g_zenv.ppu->extraLeftRight = UintMin(g_config.extended_aspect_ratio, kPpuExtraLeftRight);
@@ -878,7 +870,6 @@ int main3ds(int args, char** argv) {
                          g_config.no_sprite_limits * kPpuRenderFlags_NoSpriteLimits;
 
     printf("\x1b[1;1H ZeldaEnableMsu \x1b[K");
-    sleep(1);
     ZeldaEnableMsu(g_config.enable_msu);
 
     // // I don't know if I need these yet but I'm playing it safe.
@@ -890,11 +881,9 @@ int main3ds(int args, char** argv) {
     int window_height = custom_size ? g_config.window_height : g_current_window_scale * g_snes_height;
 
     printf("\x1b[1;1H N3DS_Renderer_Create \x1b[K");
-    sleep(1);
     N3DS_Renderer_Create(&g_renderer_funcs);
 
     printf("\x1b[1;1H ZeldaReadSram \x1b[K");
-    sleep(1);
     ZeldaReadSram();
 
     bool running = true;
@@ -904,7 +893,14 @@ int main3ds(int args, char** argv) {
     bool audiopaused = true;
 
     u64 currentTime = 0;
+    u64 previousTime = 0;
+    u64 before = 0;
+    u64 after = 0;
     u32 color = 0;
+
+    // Debugging - fill screen pink to show unused portions.
+    fill_buffer((u32*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0), 0xFF0088FF);
+    // fill_buffer((u32*)gfxGetFramebuffer(GFX_TOP,GFX_LEFT,0,0), 0xFF0088FF);
 
     while(aptMainLoop()) {
 
@@ -931,15 +927,30 @@ int main3ds(int args, char** argv) {
 
         // TODO: Audio mutex
         // SDL_LockMutex(g_audio_mutex);
+        before = osGetTime();
         bool is_replay = ZeldaRunFrame(inputs);
+        after = osGetTime();
         // SDL_UnlockMutex(g_audio_mutex);
 
         frameCtr++;
 
-        DrawPpuFrameWithPerf();
+        // Debugging
+        if ((frameCtr % 10) == 0) {
+            printf("\x1b[1;1H frameCtr:         %lu\x1b[K", frameCtr);
+            printf("\x1b[2;1H ZeldaRunFrame:    %lu\x1b[K", after - before);
+        }
+
+        // TODO: Debugging - only draw every third frame
+        if ((frameCtr % 3) == 0) {
+            before = osGetTime();
+            DrawPpuFrameWithPerf();
+            after = osGetTime();
+        }
 
         // Debugging
-        printf("\x1b[1;1H frameCtr:    %lu\x1b[K", frameCtr/10);
+        if ((frameCtr % 10) == 0) {
+            printf("\x1b[3;1H DrawPpuFrame:     %lu\x1b[K", after - before);
+        }
 
         // Cleanup buffers and wait for vblank
         gfxFlushBuffers();

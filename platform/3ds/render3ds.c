@@ -1,3 +1,6 @@
+
+/* ===== Includes ===== */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,7 +15,15 @@
 
 #include "util.h"
 
+
+/* ===== Data ===== */
+
 typedef uint8_t uint8;
+static uint8 *g_screen_buffer = NULL;
+static size_t g_screen_buffer_size = 0;
+static int g_draw_width = 0, g_draw_height = 0;
+
+/* ===== Functions ===== */
 
 /**
  * Initialize the renderer.
@@ -28,18 +39,75 @@ void N3DS_Renderer_Destroy() {
     // Nothing
 }
 
-/**
- * Anything that needs to be done before drawing to the screen.
- */
-void N3DS_Renderer_BeginDraw(int width, int height, uint8 **pixels, int *pitch) {
-    *pixels = gfxGetFramebuffer(GFX_TOP,GFX_LEFT, 0, 0);
-}
+static int size = 0;
+static uint32 mallocCounter = 0;
 
 /**
- * Anything that needs to be done after drawing to the screen.
+ * Setup to draw to the buffer.
+ */
+void N3DS_Renderer_BeginDraw(int width, int height, uint8 **pixels, int *pitch) {
+    if (size == 0) {
+        size = width * height;
+    }
+
+    if (size > g_screen_buffer_size) {
+        mallocCounter++;
+        printf("\x1b[5;1H malloc:    %lu\x1b[K", mallocCounter);
+        g_screen_buffer_size = size;
+        free(g_screen_buffer);
+        g_screen_buffer = malloc(size * 4);
+    }
+
+    g_draw_width = width;
+    g_draw_height = height;
+    *pixels = g_screen_buffer;
+    *pitch = width * 4;
+}
+
+
+// static void fill_buffer(u32* buffer, u32 color) {
+//     for (int y = 0; y < HEIGHT; y++) {
+//         for (int x = 0; x < WIDTH; x++) {
+//             buffer[x + (y * WIDTH)] = color;
+//         }
+//     }
+// }
+
+/**
+ * After drawing to the buffer.
  */
 void N3DS_Renderer_EndDraw() {
     // TODO
+    
+    const int MAX_WIDTH = 240;
+    const int MAX_HEIGHT = 400;
+    uint32* frameBuffer = (uint32*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0);
+    uint32* pixelBuffer = (uint32*)g_screen_buffer;
+
+
+    // Attempt #1: Sideways, green
+    // for (int y = 0; y < g_draw_height; ++y) {
+    //     for (int x = 0; x < g_draw_width; ++x) {
+    //         frameBuffer[x + (y * MAX_WIDTH)] = 
+    //             g_screen_buffer[x + (y * g_draw_width)];
+    //     }
+    // }
+
+    // Attempt #2: Upside down, jumbled w/ after images
+    // for (int y = 0; y < g_draw_height; ++y) {
+    //     for (int x = 0; x < g_draw_width; ++x) {
+    //         frameBuffer[y + ((240 - x) * MAX_WIDTH)] = 
+    //             g_screen_buffer[x + (y * g_draw_width)];
+    //     }
+    // }
+    
+    // Attempt #1: Sideways, green
+    for (int y = 0; y < g_draw_height; ++y) {
+        for (int x = 0; x < g_draw_width; ++x) {
+            frameBuffer[x + (y * MAX_WIDTH)] = 
+                pixelBuffer[x + (y * g_draw_width)];
+        }
+    }
 }
 
 /**
