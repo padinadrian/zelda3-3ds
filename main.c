@@ -31,10 +31,11 @@ static bool g_run_without_emu = 0;
 
 #ifdef __3DS__
 
+extern int main3ds(int args, char** argv);
 
 #undef main
 int main(int argc, char** argv) {
-  return 0;
+    return main3ds(argc, argv);
 }
 
 #else

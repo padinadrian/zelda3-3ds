@@ -7,4 +7,5 @@ build
 *.3dsx
 *.3ds
 *.cia
-
+*.dat
+tables/*

@@ -36,10 +36,10 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	zelda3
 BUILD		:=	build
+ROMFS		:=	romfs
 # DATA		:=	data
 # GRAPHICS	:=	gfx
 # GFXBUILD	:=	$(BUILD)
-# ROMFS		:=	romfs
 #GFXBUILD	:=	$(ROMFS)/gfx
 
 export OUTPUT	:=	$(CURDIR)/$(TARGET)
@@ -49,9 +49,11 @@ SRC_DIR     := ../..
 
 SOURCES		:=	$(SRC_DIR) \
 				$(SRC_DIR)/snes \
-				$(SRC_DIR)/third_party/gl_core
+				$(SRC_DIR)/platform/3ds
+				# $(SRC_DIR)/third_party/gl_core
 
 INCLUDES	:=	include \
+				$(SRC_DIR) \
 				$(DEVKITPRO)/portlibs/3ds \
 
 APP_TITLE   :=  The Legend of Zelda: A Link to the Past
