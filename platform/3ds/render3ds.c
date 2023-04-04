@@ -101,10 +101,18 @@ void N3DS_Renderer_EndDraw() {
     //     }
     // }
     
-    // Attempt #1: Sideways, green
+    // Attempt #1: Upside down, columns misalined
+    // for (int y = 0; y < g_draw_height; ++y) {
+    //     for (int x = 0; x < g_draw_width; ++x) {
+    //         frameBuffer[y + ((MAX_WIDTH - x)* MAX_HEIGHT)] = 
+    //             pixelBuffer[x + (y * g_draw_width)];
+    //     }
+    // }
+    
+    // This works!
     for (int y = 0; y < g_draw_height; ++y) {
         for (int x = 0; x < g_draw_width; ++x) {
-            frameBuffer[x + (y * MAX_WIDTH)] = 
+            frameBuffer[(MAX_WIDTH - y) + ((x) * MAX_WIDTH)] = 
                 pixelBuffer[x + (y * g_draw_width)];
         }
     }
