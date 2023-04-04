@@ -84,36 +84,22 @@ void N3DS_Renderer_EndDraw() {
     uint32* frameBuffer = (uint32*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0);
     uint32* pixelBuffer = (uint32*)g_screen_buffer;
 
+    uint32 pixel;
 
-    // Attempt #1: Sideways, green
-    // for (int y = 0; y < g_draw_height; ++y) {
-    //     for (int x = 0; x < g_draw_width; ++x) {
-    //         frameBuffer[x + (y * MAX_WIDTH)] = 
-    //             g_screen_buffer[x + (y * g_draw_width)];
-    //     }
-    // }
-
-    // Attempt #2: Upside down, jumbled w/ after images
-    // for (int y = 0; y < g_draw_height; ++y) {
-    //     for (int x = 0; x < g_draw_width; ++x) {
-    //         frameBuffer[y + ((240 - x) * MAX_WIDTH)] = 
-    //             g_screen_buffer[x + (y * g_draw_width)];
-    //     }
-    // }
-    
-    // Attempt #1: Upside down, columns misalined
-    // for (int y = 0; y < g_draw_height; ++y) {
-    //     for (int x = 0; x < g_draw_width; ++x) {
-    //         frameBuffer[y + ((MAX_WIDTH - x)* MAX_HEIGHT)] = 
-    //             pixelBuffer[x + (y * g_draw_width)];
-    //     }
-    // }
-    
     // This works!
     for (int y = 0; y < g_draw_height; ++y) {
         for (int x = 0; x < g_draw_width; ++x) {
-            frameBuffer[(MAX_WIDTH - y) + ((x) * MAX_WIDTH)] = 
-                pixelBuffer[x + (y * g_draw_width)];
+            pixel = pixelBuffer[x + (y * g_draw_width)];
+
+            pixel = (
+                ((pixel & 0xFF000000) >> 24 ) |
+                ((pixel & 0x00FF0000) << 8  ) |
+                ((pixel & 0x0000FF00) << 8  ) |
+                ((pixel & 0x000000FF) << 8  )
+            );
+
+            // Don't change this part!
+            frameBuffer[(MAX_WIDTH - y) + ((x) * MAX_WIDTH)] = pixel;
         }
     }
 }

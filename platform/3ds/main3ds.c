@@ -837,15 +837,6 @@ int main3ds(int args, char** argv) {
     consoleInit(GFX_BOTTOM, NULL);
 
     printf("\x1b[1;1HStarting up... \x1b[K");
-    // {
-    //     aptMainLoop();
-    //     hidScanInput();
-
-    //     // Cleanup buffers and wait for vblank
-    //     gfxFlushBuffers();
-    //     gfxSwapBuffers();
-    //     gspWaitForVBlank();
-    // }
 
     // Initialize the game
     ParseConfigFile(NULL);
@@ -940,8 +931,8 @@ int main3ds(int args, char** argv) {
             printf("\x1b[2;1H ZeldaRunFrame:    %lu\x1b[K", after - before);
         }
 
-        // TODO: Debugging - only draw every third frame
-        if ((frameCtr % 3) == 0) {
+        // TODO: Debugging - only draw every tenth frame
+        if ((frameCtr % 10) == 0) {
             before = osGetTime();
             DrawPpuFrameWithPerf();
             after = osGetTime();
