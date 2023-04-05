@@ -1,6 +1,6 @@
 /**
  *  Filename:   main3ds.c
- *  Author:     Adrian Padin (padinadrian@gmail.com)
+ *  Author:     Adrian Padin (padin.adrian@gmail.com)
  *  Date:       2023-03-30
  *  
  *  Starting point for 3ds port.
@@ -139,85 +139,6 @@ static void DrawPpuFrameWithPerf() {
         // RenderNumber(pixel_buffer + pitch * render_scale, pitch, g_curr_fps, render_scale == 4);
     g_renderer_funcs.EndDraw();
 }
-
-
-
-
-// State for sdl renderer
-// static SDL_Renderer *g_renderer;
-// static SDL_Texture *g_texture;
-// static SDL_Rect g_sdl_renderer_rect;
-
-// static bool SdlRenderer_Init(SDL_Window *window) {
-
-//   if (g_config.shader)
-//     fprintf(stderr, "Warning: Shaders are supported only with the OpenGL backend\n");
-
-//   SDL_Renderer *renderer = SDL_CreateRenderer(g_window, -1,
-//                                               g_config.output_method == kOutputMethod_SDLSoftware ? SDL_RENDERER_SOFTWARE :
-//                                               SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-//   if (renderer == NULL) {
-//     printf("Failed to create renderer: %s\n", SDL_GetError());
-//     return false;
-//   }
-//   SDL_RendererInfo renderer_info;
-//   SDL_GetRendererInfo(renderer, &renderer_info);
-//   if (kDebugFlag) {
-//     printf("Supported texture formats:");
-//     for (int i = 0; i < renderer_info.num_texture_formats; i++)
-//       printf(" %s", SDL_GetPixelFormatName(renderer_info.texture_formats[i]));
-//     printf("\n");
-//   }
-//   g_renderer = renderer;
-//   if (!g_config.ignore_aspect_ratio)
-//     SDL_RenderSetLogicalSize(renderer, g_snes_width, g_snes_height);
-//   if (g_config.linear_filtering)
-//     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "best");
-
-//   int tex_mult = (g_ppu_render_flags & kPpuRenderFlags_4x4Mode7) ? 4 : 1;
-//   g_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
-//                                 g_snes_width * tex_mult, g_snes_height * tex_mult);
-//   if (g_texture == NULL) {
-//     printf("Failed to create texture: %s\n", SDL_GetError());
-//     return false;
-//   }
-//   return true;
-// }
-
-// static void SdlRenderer_Destroy() {
-//   SDL_DestroyTexture(g_texture);
-//   SDL_DestroyRenderer(g_renderer);
-// }
-
-// static void SdlRenderer_BeginDraw(int width, int height, uint8 **pixels, int *pitch) {
-//   g_sdl_renderer_rect.w = width;
-//   g_sdl_renderer_rect.h = height;
-//   if (SDL_LockTexture(g_texture, &g_sdl_renderer_rect, (void **)pixels, pitch) != 0) {
-//     printf("Failed to lock texture: %s\n", SDL_GetError());
-//     return;
-//   }
-// }
-
-// static void SdlRenderer_EndDraw() {
-
-// //  uint64 before = SDL_GetPerformanceCounter();
-//   SDL_UnlockTexture(g_texture);
-// //  uint64 after = SDL_GetPerformanceCounter();
-// //  float v = (double)(after - before) / SDL_GetPerformanceFrequency();
-// //  printf("%f ms\n", v * 1000);
-//   SDL_RenderClear(g_renderer);
-//   SDL_RenderCopy(g_renderer, g_texture, &g_sdl_renderer_rect, NULL);
-//   SDL_RenderPresent(g_renderer); // vsyncs to 60 FPS?
-// }
-
-// static const struct RendererFuncs kSdlRendererFuncs  = {
-//   &SdlRenderer_Init,
-//   &SdlRenderer_Destroy,
-//   &SdlRenderer_BeginDraw,
-//   &SdlRenderer_EndDraw,
-// };
-
-// void OpenGLRenderer_Create(struct RendererFuncs *funcs);
 
 // #undef main
 // int main(int argc, char** argv) {
@@ -459,50 +380,6 @@ static void DrawPpuFrameWithPerf() {
 //   return 0;
 // }
 
-// static void RenderDigit(uint8 *dst, size_t pitch, int digit, uint32 color, bool big) {
-//   static const uint8 kFont[] = {
-//     0x1c, 0x36, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x36, 0x1c,
-//     0x18, 0x1c, 0x1e, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x7e,
-//     0x3e, 0x63, 0x60, 0x30, 0x18, 0x0c, 0x06, 0x03, 0x63, 0x7f,
-//     0x3e, 0x63, 0x60, 0x60, 0x3c, 0x60, 0x60, 0x60, 0x63, 0x3e,
-//     0x30, 0x38, 0x3c, 0x36, 0x33, 0x7f, 0x30, 0x30, 0x30, 0x78,
-//     0x7f, 0x03, 0x03, 0x03, 0x3f, 0x60, 0x60, 0x60, 0x63, 0x3e,
-//     0x1c, 0x06, 0x03, 0x03, 0x3f, 0x63, 0x63, 0x63, 0x63, 0x3e,
-//     0x7f, 0x63, 0x60, 0x60, 0x30, 0x18, 0x0c, 0x0c, 0x0c, 0x0c,
-//     0x3e, 0x63, 0x63, 0x63, 0x3e, 0x63, 0x63, 0x63, 0x63, 0x3e,
-//     0x3e, 0x63, 0x63, 0x63, 0x7e, 0x60, 0x60, 0x60, 0x30, 0x1e,
-//   };
-//   const uint8 *p = kFont + digit * 10;
-//   if (!big) {
-//     for (int y = 0; y < 10; y++, dst += pitch) {
-//       int v = *p++;
-//       for (int x = 0; v; x++, v >>= 1) {
-//         if (v & 1)
-//           ((uint32 *)dst)[x] = color;
-//       }
-//     }
-//   } else {
-//     for (int y = 0; y < 10; y++, dst += pitch * 2) {
-//       int v = *p++;
-//       for (int x = 0; v; x++, v >>= 1) {
-//         if (v & 1) {
-//           ((uint32 *)dst)[x * 2 + 1] = ((uint32 *)dst)[x * 2] = color;
-//           ((uint32 *)(dst+pitch))[x * 2 + 1] = ((uint32 *)(dst + pitch))[x * 2] = color;
-//         }
-//       }
-//     }
-//   }
-// }
-
-// static void RenderNumber(uint8 *dst, size_t pitch, int n, bool big) {
-//   char buf[32], *s;
-//   int i;
-//   sprintf(buf, "%d", n);
-//   for (s = buf, i = 2 * 4; *s; s++, i += 8 * 4)
-//     RenderDigit(dst + ((pitch + i + 4) << big), pitch, *s - '0', 0x404040, big);
-//   for (s = buf, i = 2 * 4; *s; s++, i += 8 * 4)
-//     RenderDigit(dst + (i << big), pitch, *s - '0', 0xffffff, big);
-// }
 
 static void HandleCommand_Locked(uint32 j, bool pressed);
 
@@ -571,15 +448,6 @@ static void HandleCommand_Locked(uint32 j, bool pressed) {
     case kKeys_PauseDimmed:
       g_paused = !g_paused;
       // SDL_RenderPresent may not be called more than once per frame.
-      // Seems to work on Windows still. Temporary measure until it's fixed.
-#ifdef _WIN32
-      if (g_paused) {
-        // SDL_SetRenderDrawBlendMode(g_renderer, SDL_BLENDMODE_BLEND);
-        // SDL_SetRenderDrawColor(g_renderer, 0, 0, 0, 159);
-        // SDL_RenderFillRect(g_renderer, NULL);
-        // SDL_RenderPresent(g_renderer);
-      }
-#endif
       break;
     case kKeys_ReplayTurbo: g_replay_turbo = !g_replay_turbo; break;
     case kKeys_WindowBigger: ChangeWindowScale(1); break;

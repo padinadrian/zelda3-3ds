@@ -1,3 +1,10 @@
+/**
+ *  Filename:   render3ds.c
+ *  Author:     Adrian Padin (padin.adrian@gmail.com)
+ *  Date:       2023-04-01
+ * 
+ *  Functions for rendering on the 3DS screen.
+ */
 
 /* ===== Includes ===== */
 
@@ -18,10 +25,12 @@
 
 /* ===== Data ===== */
 
-typedef uint8_t uint8;
+static int size = 0;
+static uint32 mallocCounter = 0;
 static uint8 *g_screen_buffer = NULL;
 static size_t g_screen_buffer_size = 0;
 static int g_draw_width = 0, g_draw_height = 0;
+
 
 /* ===== Functions ===== */
 
@@ -39,9 +48,6 @@ void N3DS_Renderer_Destroy() {
     // Nothing
 }
 
-static int size = 0;
-static uint32 mallocCounter = 0;
-
 /**
  * Setup to draw to the buffer.
  */
@@ -50,6 +56,7 @@ void N3DS_Renderer_BeginDraw(int width, int height, uint8 **pixels, int *pitch) 
         size = width * height;
     }
 
+    // Allocate a buffer to copy pixel data into if necessary.
     if (size > g_screen_buffer_size) {
         mallocCounter++;
         printf("\x1b[5;1H malloc:    %lu\x1b[K", mallocCounter);
@@ -64,33 +71,23 @@ void N3DS_Renderer_BeginDraw(int width, int height, uint8 **pixels, int *pitch) 
     *pitch = width * 4;
 }
 
-
-// static void fill_buffer(u32* buffer, u32 color) {
-//     for (int y = 0; y < HEIGHT; y++) {
-//         for (int x = 0; x < WIDTH; x++) {
-//             buffer[x + (y * WIDTH)] = color;
-//         }
-//     }
-// }
-
 /**
  * After drawing to the buffer.
  */
 void N3DS_Renderer_EndDraw() {
-    // TODO
-    
+    // The 3DS top screen is 400x240 pixels.
+    // The "width" of the 3DS screen is actually the height.
     const int MAX_WIDTH = 240;
-    const int MAX_HEIGHT = 400;
     uint32* frameBuffer = (uint32*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0);
     uint32* pixelBuffer = (uint32*)g_screen_buffer;
-
     uint32 pixel;
 
-    // This works!
+    // Copy pixel data to the 3DS framebuffer.
     for (int y = 0; y < g_draw_height; ++y) {
         for (int x = 0; x < g_draw_width; ++x) {
-            pixel = pixelBuffer[x + (y * g_draw_width)];
 
+            // Convert pixel format from ARGB -> RGBA
+            pixel = pixelBuffer[x + (y * g_draw_width)];
             pixel = (
                 ((pixel & 0xFF000000) >> 24 ) |
                 ((pixel & 0x00FF0000) << 8  ) |
@@ -99,7 +96,9 @@ void N3DS_Renderer_EndDraw() {
             );
 
             // Don't change this part!
-            frameBuffer[(MAX_WIDTH - y) + ((x) * MAX_WIDTH)] = pixel;
+            // The picture needs to be rotated and flipped because
+            // the 3DS screen is sideways.
+            frameBuffer[(MAX_WIDTH - y) + (x * MAX_WIDTH)] = pixel;
         }
     }
 }
