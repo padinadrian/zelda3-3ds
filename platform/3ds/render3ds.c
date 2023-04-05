@@ -59,7 +59,6 @@ void N3DS_Renderer_BeginDraw(int width, int height, uint8 **pixels, int *pitch) 
     // Allocate a buffer to copy pixel data into if necessary.
     if (size > g_screen_buffer_size) {
         mallocCounter++;
-        printf("\x1b[5;1H malloc:    %lu\x1b[K", mallocCounter);
         g_screen_buffer_size = size;
         free(g_screen_buffer);
         g_screen_buffer = malloc(size * 4);
