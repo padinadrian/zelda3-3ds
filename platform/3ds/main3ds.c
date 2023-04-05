@@ -41,15 +41,12 @@
 void ShaderInit();
 // static bool LoadRom(const char *filename);
 static void LoadLinkGraphics();
-// static void RenderNumber(uint8 *dst, size_t pitch, int n, bool big);
 static void HandleInput(int keyCode, int modCode, bool pressed);
 static void HandleCommand(uint32 j, bool pressed);
 static void HandleGamepadInput(int button, bool pressed);
 static void HandleVolumeAdjustment(int volume_adjustment);
 static void LoadAssets();
 static void SwitchDirectory();
-
-// Render functions
 
 
 /* ===== Enumerations ===== */
@@ -132,11 +129,8 @@ static void DrawPpuFrameWithPerf() {
     } else {
         ZeldaDrawPpuFrame(pixel_buffer, pitch, g_ppu_render_flags);
     }
-    //   if (g_display_perf)
-        // RenderNumber(pixel_buffer + pitch * render_scale, pitch, g_curr_fps, render_scale == 4);
     g_renderer_funcs.EndDraw();
 }
-
 
 static void HandleCommand_Locked(uint32 j, bool pressed);
 
@@ -205,14 +199,12 @@ static void HandleCommand_Locked(uint32 j, bool pressed) {
       break;
     case kKeys_ReplayTurbo: g_replay_turbo = !g_replay_turbo; break;
     case kKeys_DisplayPerf: g_display_perf ^= 1; break;
-    case kKeys_ToggleRenderer: g_ppu_render_flags ^= kPpuRenderFlags_NewRenderer; break;
     case kKeys_VolumeUp:
     case kKeys_VolumeDown: HandleVolumeAdjustment(j == kKeys_VolumeUp ? 1 : -1); break;
     default: assert(0);
     }
   }
 }
-
 
 static void HandleGamepadInput(int button, bool pressed) {
   if (!!(g_gamepad_modifiers & (1 << button)) == pressed)
@@ -386,7 +378,7 @@ int main3ds(int args, char** argv) {
     // Initialize graphics
     gfxInitDefault();
     gfxInit(GSP_RGBA8_OES, GSP_RGBA8_OES, false);
-    gfxSetDoubleBuffering(GFX_TOP, false);
+    gfxSetDoubleBuffering(GFX_TOP, true);
     consoleInit(GFX_BOTTOM, NULL);
 
     printf("\x1b[1;1HStarting up... \x1b[K");
@@ -406,6 +398,8 @@ int main3ds(int args, char** argv) {
 
     // Delay actually setting those features in ram until any snapshots finish playing.
     g_wanted_zelda_features = g_config.features0;
+
+    g_config.new_renderer = 1;
 
     g_ppu_render_flags = g_config.new_renderer * kPpuRenderFlags_NewRenderer |
                          g_config.enhanced_mode7 * kPpuRenderFlags_4x4Mode7 |
@@ -442,8 +436,7 @@ int main3ds(int args, char** argv) {
     u32 color = 0;
 
     // Debugging - fill screen pink to show unused portions.
-    fill_buffer((u32*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0), 0xFF0088FF);
-    // fill_buffer((u32*)gfxGetFramebuffer(GFX_TOP,GFX_LEFT,0,0), 0xFF0088FF);
+    // fill_buffer((u32*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0), 0xFF0088FF);
 
     while(aptMainLoop()) {
 
@@ -489,11 +482,11 @@ int main3ds(int args, char** argv) {
         }
 
         // TODO: Debugging - only draw every tenth frame
-        if ((frameCtr % 10) == 0) {
+        // if ((frameCtr % 10) == 0) {
             before = osGetTime();
             DrawPpuFrameWithPerf();
             after = osGetTime();
-        }
+        // }
 
         // Debugging
         if ((frameCtr % 10) == 0) {

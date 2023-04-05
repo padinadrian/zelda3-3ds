@@ -81,6 +81,9 @@ void N3DS_Renderer_EndDraw() {
     uint32* pixelBuffer = (uint32*)g_screen_buffer;
     uint32 pixel;
 
+    int x_offset = 72;
+    int y_offset = -8;
+
     // Copy pixel data to the 3DS framebuffer.
     for (int y = 0; y < g_draw_height; ++y) {
         for (int x = 0; x < g_draw_width; ++x) {
@@ -97,7 +100,7 @@ void N3DS_Renderer_EndDraw() {
             // Don't change this part!
             // The picture needs to be rotated and flipped because
             // the 3DS screen is sideways.
-            frameBuffer[(MAX_WIDTH - y) + (x * MAX_WIDTH)] = pixel;
+            frameBuffer[(MAX_WIDTH - y + y_offset) + ((x + x_offset) * MAX_WIDTH)] = pixel;
         }
     }
 }
