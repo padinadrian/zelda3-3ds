@@ -11,11 +11,26 @@ def cache(user_function):
 # Both are common SNES rom extensions. For Zelda3 (NA), they are equivalent files.
 COMMON_ROM_NAMES = ['zelda3.sfc', 'zelda3.smc']
 DEFAULT_ROM_DIRECTORY = os.path.dirname(__file__)
-ZELDA3_SHA256 = '66871d66be19ad2c34c927d6b14cd8eb6fc3181965b6e517cb361f7316009cfb'
 
-def load_rom(filename):
+ZELDA3_SHA1_US = '6D4F10A8B10E10DBE624CB23CF03B88BB8252973'
+ZELDA3_SHA1 = {
+   ZELDA3_SHA1_US : ('us', 'Legend of Zelda, The - A Link to the Past (USA)'),
+  '2E62494967FB0AFDF5DA1635607F9641DF7C6559' : ('de', 'Legend of Zelda, The - A Link to the Past (Germany)'),
+  '229364A1B92A05167CD38609B1AA98F7041987CC' : ('fr', 'Legend of Zelda, The - A Link to the Past (France)'),
+  'C1C6C7F76FFF936C534FF11F87A54162FC0AA100' : ('fr-c', 'Legend of Zelda, The - A Link to the Past (Canada)'),
+  '7C073A222569B9B8E8CA5FCB5DFEC3B5E31DA895' : ('en',  'Legend of Zelda, The - A Link to the Past (Europe)'),
+  '461FCBD700D1332009C0E85A7A136E2A8E4B111E' : ('es',  'Spanish - https://www.romhacking.net/translations/2195/'),
+  '3C4D605EEFDA1D76F101965138F238476655B11D' : ('pl',  'Polish - https://www.romhacking.net/translations/5760/'),
+  'D0D09ED41F9C373FE6AFDCCAFBF0DA8C88D3D90D' : ('pt',  'Portuguese - https://www.romhacking.net/translations/6530/'),
+  'B2A07A59E64C498BC1B2F28728F9BF4014C8D582' : ('redux', 'English Redux - https://www.romhacking.net/translations/6657/'),
+  '9325C22EB0A2A1F0017157C8B620BC3A605CEDE1' : ('redux', 'English Redux - https://www.romhacking.net/hacks/2594/'),
+  'FA8ADFDBA2697C9A54D583A1284A22AC764C7637' : ('nl', 'Dutch - https://www.romhacking.net/translations/1124/'),
+  '43CD3438469B2C3FE879EA2F410B3EF3CB3F1CA4' : ('sv', 'Swedish - https://www.romhacking.net/translations/982/'),
+}
+
+def load_rom(filename, support_multilanguage = False):
   global ROM
-  ROM = LoadedRom(filename)
+  ROM = LoadedRom(filename, support_multilanguage)
   return ROM
 
 def get_byte(addr):
@@ -44,12 +59,32 @@ def get_word(addr):
 
 
 class LoadedRom:
-  def __init__(self, path = None):
+  def __init__(self, path = None, support_multilanguage = False):
     rom_path = self.__get_rom_path(path)
     self.ROM = open(rom_path, 'rb').read()
-    hash = hashlib.sha256(self.ROM).hexdigest() 
-    if hash != ZELDA3_SHA256:
-      raise Exception(f"ROM with hash {hash} not supported. Expected {ZELDA3_SHA256}. Please verify your ROM is the NA 1.0 version.");
+
+    # Remove the SMC header?
+    if (len(self.ROM) & 0xfffff) == 0x200:
+      self.ROM = self.ROM[0x200:]
+
+    hash = hashlib.sha1(self.ROM).hexdigest().upper()
+    entry = ZELDA3_SHA1.get(hash)
+    self.language = entry[0] if entry != None else None
+
+    # Workaround for swedish rom with broken size
+    if self.language == 'sv' and len(self.ROM) == 0x10083b:
+      self.ROM = self.ROM[0x200:]
+
+    if support_multilanguage:
+      if self.language == None:
+        msg = f"\n\nROM with hash {hash} not supported.\n\nYou need one of the following ROMs to extract the resources:\n"
+        for k, v in ZELDA3_SHA1.items():
+          msg += '%5s: %s: %s\n' % (v[0], k, v[1])
+        raise Exception(msg)
+      print('Identified ROM as: %s - "%s"' % entry)
+    else:
+      if self.language != 'us':
+        raise Exception(f"\n\nROM with hash {hash} not supported.\n\nExpected {ZELDA3_SHA1_US}.\nPlease verify your ROM is \"Legend of Zelda, The - A Link to the Past (USA)\"");
 
   def get_byte(self, ea):
     assert (ea & 0x8000)

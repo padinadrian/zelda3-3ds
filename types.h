@@ -63,7 +63,9 @@ static FORCEINLINE uint UintMax(uint a, uint b) { return a > b ? a : b; }
 #define DWORD(x) (*(uint32*)&(x))
 #define XY(x, y) ((y)*64+(x))
 
+#ifndef swap16
 static inline uint16 swap16(uint16 v) { return (v << 8) | (v >> 8); }
+#endif
 
 typedef struct Point16U {
   uint16 x, y;
@@ -89,6 +91,12 @@ typedef struct ProjectSpeedRet {
 typedef struct OamEnt {
   uint8 x, y, charnum, flags;
 } OamEnt;
+
+typedef struct MemBlk {
+  const uint8 *ptr;
+  size_t size;
+} MemBlk;
+MemBlk FindIndexInMemblk(MemBlk data, size_t i);
 
 void NORETURN Die(const char *error);
 

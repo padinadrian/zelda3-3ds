@@ -77,6 +77,7 @@ static const uint8 kLinkItem_MagicCosts[] = { 16, 8, 4, 32, 16, 8, 8, 4, 2, 8, 4
 static const uint8 kBombosAnimDelays[] = { 5, 5, 5, 5, 5, 5, 5, 5, 3, 3, 3, 3, 3, 7, 1, 1, 1, 1, 1, 13 };
 static const uint8 kBombosAnimStates[] = { 0, 1, 2, 3, 0, 1, 2, 3, 8, 9, 10, 11, 12, 10, 8, 13, 14, 15, 16, 17 };
 static const uint8 kEtherAnimDelays[] = { 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 3, 3 };
+static const uint8 kEtherAnimDelaysNoFlash[] = { 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 24, 24 };
 static const uint8 kEtherAnimStates[] = { 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7 };
 static const uint8 kQuakeAnimDelays[] = { 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 19 };
 static const uint8 kQuakeAnimStates[] = { 0, 1, 2, 3, 0, 1, 2, 3, 18, 19, 20, 22 };
@@ -1588,6 +1589,11 @@ void HandleDungeonLandingFromPit() {  // 879520
     if (tiledetect_which_y_pos[0] >= link_y_coord)
       return;
   }
+  //exploration glitch could also be armed without quitting
+  //by jumping off a dungeon ledge into an access pit
+  if (enhanced_features0 & kFeatures0_MiscBugFixes) {
+    about_to_jump_off_ledge = 0;
+  }
   link_y_coord = tiledetect_which_y_pos[0];
   link_animation_steps = 0;
   link_speed_modifier = 0;
@@ -2124,10 +2130,6 @@ void Link_APress_PerformBasic(uint8 action_x2) {  // 879c5f
   default:
     assert(0);
   }
-
-  // Zelda vanilla bug: Disallow dragging while in cape mode, it uses no magic.
-  if (link_cape_mode && enhanced_features0 & kFeatures0_MiscBugFixes)
-    link_grabbing_wall = 0;
 }
 
 void HandleSwordSfxAndBeam() {  // 879c66
@@ -2685,7 +2687,8 @@ void LinkState_UsingEther() {  // 87a50f
   } else if (step_counter_for_spin_attack == 12) {
     step_counter_for_spin_attack = 10;
   }
-  link_delay_timer_spin_attack = kEtherAnimDelays[step_counter_for_spin_attack];
+  const uint8 *table = (enhanced_features0 & kFeatures0_DimFlashes) ? kEtherAnimDelaysNoFlash : kEtherAnimDelays;
+  link_delay_timer_spin_attack = table[step_counter_for_spin_attack];
   state_for_spin_attack = kEtherAnimStates[step_counter_for_spin_attack];
   if (!byte_7E0324 && step_counter_for_spin_attack == 10) {
     byte_7E0324 = 1;
@@ -3284,7 +3287,8 @@ void HaltLinkWhenUsingItems() {  // 87ae65
 }
 
 void Link_HandleCape_passive_LiftCheck() {  // 87ae88
-  if (link_state_bits & 0x80)
+  //bugfix: grabbing or pulling while wearing cape didn't drain magic
+  if (link_state_bits & 0x80 || (enhanced_features0 & kFeatures0_MiscBugFixes && link_grabbing_wall))
     Player_CheckHandleCapeStuff();
 }
 
@@ -3552,8 +3556,8 @@ void Link_APress_LiftCarryThrow() {  // 87b1ca
   } else {
     static const uint8 kLiftTab0[10] = { 8, 24, 8, 24, 8, 32, 6, 8, 13, 13 };
     static const uint8 kLiftTab1[10] = { 0, 1, 0, 1, 0, 1, 0, 1, 2, 3 };
-    static const uint8 kLiftTab2[] = { 6, 7, 7, 5, 10, 0, 23, 0, 18, 0, 18, 0, 8, 0, 8, 0, 254, 255, 17, 0,
-      0x54, 0x52, 0x50, 0xFF, 0x51, 0x53, 0x55, 0x56, 0x57};
+    static const uint8 kLiftTab2[29] = { 6, 7, 7, 5, 10, 0, 23, 0, 18, 0, 18, 0, 8, 0, 8, 0, 254, 255, 17, 0, 
+        0x54, 0x52, 0x50, 0xFF, 0x51, 0x53, 0x55, 0x56, 0x57 };
 
     if (player_handler_timer != 0) {
       if (player_handler_timer + 1 != 9) {
@@ -3572,8 +3576,9 @@ void Link_APress_LiftCarryThrow() {  // 87b1ca
         return;
       }
     } else {
-
-      // todo: This is an OOB read triggered when lifting for too long
+      // fix OOB read triggered when lifting for too long
+      if (some_animation_timer_steps >= sizeof(kLiftTab2) - 1)
+        return;
       some_animation_timer = kLiftTab2[++some_animation_timer_steps];
       assert(some_animation_timer_steps < arraysize(kLiftTab2));
       if (some_animation_timer_steps != 3)
@@ -5981,7 +5986,8 @@ void Link_HandleMovingAnimation_StartWithDash() {  // 87e704
   static const uint8 tab2[16] = { 4, 4, 4, 4, 1, 1, 1, 1, 2, 2, 2, 2, 8, 8, 8, 8 };
   static const uint8 tab3[24] = { 1, 2, 3, 2, 2, 2, 3, 2, 1, 1, 2, 1, 1, 1, 2, 1, 2, 2, 3, 2, 2, 2, 3, 2 };
 
-  if (link_player_handler_state == 23) {  // kPlayerState_PermaBunny
+//bugfix: tempbunny animation steps are wrong due to missing check
+  if (link_player_handler_state == 23 || (enhanced_features0 & kFeatures0_MiscBugFixes && link_player_handler_state == 28)) {  // bunny states
     if (link_animation_steps < 4 && player_on_somaria_platform != 2) {
       if (++link_counter_var1 >= tab2[x]) {
         link_counter_var1 = 0;
@@ -6254,15 +6260,28 @@ void Link_Initialize() {  // 87f13c
   player_on_somaria_platform = 0;
   link_spin_attack_step_counter = 0;
 
-  // This fixes the jump ledge exploration glitch
   if (enhanced_features0 & kFeatures0_MiscBugFixes) {
+    // If you quit while jumping from a ledge and get hit on a platform you can go under solid layers
     about_to_jump_off_ledge = 0;
+ 
+    // If you use the mirror near a moveable statue you can pull thin air and glitch the camera
+    link_is_near_moveable_statue = 0;
 
-    // If you use a mirror on a conveyor belt you still had momentum
+    // If you use the mirror on a conveyor belt you will retain momentum and clip into the entrance wall
     link_on_conveyor_belt = 0;
+    
+    // bugfix: you use the mirror on ice, you retain momentum
+    link_flag_moving = 0;
 
-    // These could be 1 if quitting while killing armos knight
+    // If you quit in the middle of red armos knight stomp the lumberjack tree will fall on its own
     bg1_y_offset = bg1_x_offset = 0;
+      //bugfix: if you die in a dungeon as a permabunny and continue, you revert back to link
+      if (!link_item_moon_pearl && savegame_is_darkworld) {
+        link_player_handler_state = kPlayerState_PermaBunny;
+        link_is_bunny = 1;
+        link_is_bunny_mirror = 1;
+        LoadGearPalettes_bunny();
+      }
   }
 }
 
@@ -6304,6 +6323,11 @@ void Link_ResetProperties_B() {  // 87f1e6
 }
 
 void Link_ResetProperties_C() {  // 87f1fa
+  if (enhanced_features0 & kFeatures0_MiscBugFixes) {
+    // Fix save menu lockout when dying after medallion cast (#126)
+    flag_custom_spell_anim_active = 0;
+  }
+
   tile_action_index = 0;
   state_for_spin_attack = 0;
   step_counter_for_spin_attack = 0;

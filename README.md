@@ -47,9 +47,9 @@ Option 2: Building it yourself
 Visit Wiki for more info on building the project: https://github.com/snesrev/zelda3/wiki
 
 ## Installing Python & libraries on Windows (required for asset extraction steps)
-1. Download [Python](https://www.python.org/ftp/python/3.10.7/python-3.10.7-amd64.exe) installer and install
+1. Download [Python](https://www.python.org/ftp/python/3.11.1/python-3.11.1-amd64.exe) installer and install with "Add to PATH" checkbox checked
 2. Open the command prompt
-3. Upgrade pip & install `pillow` and `pyyaml` by typing `python -m pip install --upgrade pip pillow pyyaml` and hit enter
+3. Type `python -m pip install --upgrade pip pillow pyyaml` and hit enter
 4. Close the command prompt
 
 ## Compiling on Windows with TCC (1mb Tiny C Compiler)
@@ -57,20 +57,20 @@ Visit Wiki for more info on building the project: https://github.com/snesrev/zel
 2. Extract the ZIP to your hard drive
 3. Place the USA rom named `zelda3.sfc` in the "\tables" subfolder
 4. Open the command prompt and navigate to that folder
-5. Extract resources by typing `python extract_resources.py` and hit enter
-6. Compile the extracted resources by typing `python compile_resources.py` and hit enter
-7. Close the command prompt
-8. Download [TCC](https://github.com/FitzRoyX/tinycc/releases/download/tcc_20221020/tcc_20221020.zip) and extract to the "\third_party" subfolder
-9. Download [SDL2](https://github.com/libsdl-org/SDL/releases/download/release-2.24.1/SDL2-devel-2.24.1-VC.zip) and extract to the "\third_party" subfolder
-10. Double-click `run_with_tcc.bat` in the main dir to create `zelda3.exe` in that same dir
-11. Configure with `zelda3.ini` in the main dir
+5. Type `python restool.py --extract-from-rom` and hit enter
+6. Close the command prompt
+7. Download [TCC](https://github.com/FitzRoyX/tinycc/releases/download/tcc_20221020/tcc_20221020.zip) and extract to the "\third_party" subfolder
+8. Download [SDL2](https://github.com/libsdl-org/SDL/releases/download/release-2.26.3/SDL2-devel-2.26.3-VC.zip) and extract to the "\third_party" subfolder
+9. Double-click `run_with_tcc.bat` in the main dir to create `zelda3.exe` in that same dir
+10. Configure with `zelda3.ini` in the main dir
 
 ## Compiling on Windows with Visual Studio (4.5gb IDE and compiler)
 Same Steps 1-7 above<br/>
 8. Double-click `Zelda3.sln`<br/>
-9. Change "debug" to "release" in the top dropdown<br/>
-10. Choose "build > build Zelda3" in the menu to create `zelda3.exe` in the "/bin/release" subfolder<br/>
-11. Configure with `zelda3.ini` in the main dir<br/>
+9. Install the **Desktop development with C++** workload with the VS Installer if you don't have it already (it should prompt you to do this).<br/>
+10. Change "debug" to "release" in the top dropdown<br/>
+12. Choose "build > build Zelda3" in the menu to create `zelda3.exe` in the "/bin/release" subfolder<br/>
+13. Configure with `zelda3.ini` in the main dir<br/>
 
 ## Installing libraries on Linux/MacOS
 1. Open a terminal
@@ -89,7 +89,7 @@ python3 -m pip install -r requirements.txt
 ```
 5. Install SDL2
 * Ubuntu/Debian `sudo apt install libsdl2-dev`
-* Fedora Linux `sudo dnf in sdl2-devel`
+* Fedora Linux `sudo dnf install SDL2-devel`
 * Arch Linux `sudo pacman -S sdl2`
 * macOS: `brew install sdl2` (you can get homebrew [here](https://brew.sh/))
 
@@ -177,8 +177,8 @@ Additionally, the following commands are available:
 | Alt+Enter | Toggle Fullscreen     |
 | Shift+F1-F10 | Save snapshot |
 | Ctrl+F1-F10 | Replay the snapshot |
-| 1-9 | run a dungeons playthrough snapshots |
-| Ctrl+1-9 | run a dungeons playthrough in turbo mode |
+| 1-9 | Load a dungeons playthrough snapshot |
+| Ctrl+1-9 | Run a dungeons playthrough in turbo mode |
 
 
 ## License

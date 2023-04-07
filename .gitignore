@@ -36,3 +36,4 @@ __pycache__
 *.3dsx
 *.elf
 /platform/*/build
+/token.txt
