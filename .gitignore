@@ -30,3 +30,10 @@ __pycache__
 /zelda3.wiki
 /sprites-gfx
 /glsl-shaders
+*.o
+*.d
+*.3ds
+*.3dsx
+*.elf
+/platform/*/build
+/token.txt

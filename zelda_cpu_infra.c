@@ -113,6 +113,8 @@ static void VerifySnapshotsEq(Snapshot *b, Snapshot *a, Snapshot *prev) {
   memcpy(a->ram + 0x1db20, b->ram + 0x1db20, 64 * 2);  // msu
   a->ram[0x654] = b->ram[0x654];  // msu_volume
 
+  memcpy(a->ram + 0x1CDD, b->ram + 0x1CDD, 2);  // dialogue_msg_src_offs
+  
   if (memcmp(b->ram, a->ram, 0x20000)) {
     fprintf(stderr, "@%d: Memory compare failed (mine != theirs, prev):\n", frame_counter);
     int j = 0;
@@ -516,6 +518,8 @@ static void PatchRom(uint8_t *rom) {
   PatchRomBP(rom, 0x8f708); // don't init scratch_c
 
   PatchRomBP(rom, 0x1DCDEB); // y is destroyed earlier, restore it..
+
+  PatchRomBP(rom, 0x7B269);  // Link_APress_LiftCarryThrow oob
 
   // Smithy_Frog doesn't save X
   memmove(rom + 0x332b8, rom + 0x332b7, 4); rom[0x332b7] = 0xfa;

@@ -32,9 +32,9 @@ Config g_config;
 //   // Replay State
 //   C(SDLK_F1), C(SDLK_F2), C(SDLK_F3), C(SDLK_F4), C(SDLK_F5), C(SDLK_F6), C(SDLK_F7), C(SDLK_F8), C(SDLK_F9), C(SDLK_F10), N, N, N, N, N, N, N, N, N, N,
 //   // Load Ref State
-//   _(SDLK_1), _(SDLK_2), _(SDLK_3), _(SDLK_4), _(SDLK_5), _(SDLK_6), _(SDLK_7), _(SDLK_8), _(SDLK_9), _(SDLK_0), _(SDLK_MINUS), _(SDLK_EQUALS), _(SDLK_BACKSPACE), N, N, N, N, N, N, N,
+//   N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, N,
 //   // Replay Ref State
-//   C(SDLK_1), C(SDLK_2), C(SDLK_3), C(SDLK_4), C(SDLK_5), C(SDLK_6), C(SDLK_7), C(SDLK_8), C(SDLK_9), C(SDLK_0), C(SDLK_MINUS), C(SDLK_EQUALS), C(SDLK_BACKSPACE), N, N, N, N, N, N, N,
+//   N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, N,
 //   // CheatLife, CheatKeys, CheatEquipment, CheatWalkThroughWalls
 //   _(SDLK_w), _(SDLK_o), S(SDLK_w), C(SDLK_e),
 //   // ClearKeyLog, StopReplay, Fullscreen, Reset, Pause, PauseDimmed, Turbo, ReplayTurbo, WindowBigger, WindowSmaller, DisplayPerf, ToggleRenderer
@@ -109,9 +109,13 @@ static int KeyMapHash_Find(uint16 key) {
 // int FindCmdForSdlKey(SDL_Keycode code, SDL_Keymod mod) {
 //   if (code & ~(SDLK_SCANCODE_MASK | 0x1ff))
 //     return 0;
-//   int key = mod & KMOD_ALT ? kKeyMod_Alt : 0;
-//   key |= mod & KMOD_CTRL ? kKeyMod_Ctrl : 0;
-//   key |= mod & KMOD_SHIFT ? kKeyMod_Shift : 0;
+//   int key = 0;
+//   if (code != SDLK_LALT && code != SDLK_RALT)
+//     key |=  mod & KMOD_ALT ? kKeyMod_Alt : 0;
+//   if (code != SDLK_LCTRL && code != SDLK_RCTRL)
+//     key |= mod & KMOD_CTRL ? kKeyMod_Ctrl : 0;
+//   if (code != SDLK_LSHIFT && code != SDLK_RSHIFT)
+//     key |= mod & KMOD_SHIFT ? kKeyMod_Shift : 0;
 //   key |= REMAP_SDL_KEYCODE(code);
 //   return KeyMapHash_Find(key);
 // }
@@ -356,7 +360,9 @@ static bool HandleIniConfig(int section, const char *key, char *value) {
       return true;
     } else if (StringEqualsNoCase(key, "OutputMethod")) {
       g_config.output_method = StringEqualsNoCase(value, "SDL-Software") ? kOutputMethod_SDLSoftware :
-                               StringEqualsNoCase(value, "OpenGL") ? kOutputMethod_OpenGL : kOutputMethod_SDL;
+                               StringEqualsNoCase(value, "OpenGL") ? kOutputMethod_OpenGL : 
+                               StringEqualsNoCase(value, "OpenGL ES") ? kOutputMethod_OpenGL_ES :
+                                                                        kOutputMethod_SDL;
       return true;
     } else if (StringEqualsNoCase(key, "LinearFiltering")) {
       return ParseBool(value, &g_config.linear_filtering);
@@ -368,6 +374,8 @@ static bool HandleIniConfig(int section, const char *key, char *value) {
     } else if (StringEqualsNoCase(key, "Shader")) {
       g_config.shader = *value ? value : NULL;
       return true;
+    } else if (StringEqualsNoCase(key, "DimFlashes")) {
+      return ParseBoolBit(value, &g_config.features0, kFeatures0_DimFlashes);
     }
   } else if (section == 2) {
     if (StringEqualsNoCase(key, "EnableAudio")) {
@@ -436,6 +444,9 @@ static bool HandleIniConfig(int section, const char *key, char *value) {
       return ParseBool(value, &g_config.display_perf_title);
     } else if (StringEqualsNoCase(key, "DisableFrameDelay")) {
       return ParseBool(value, &g_config.disable_frame_delay);
+    } else if (StringEqualsNoCase(key, "Language")) {
+      g_config.language = value;
+      return true;
     }
   } else if (section == 4) {
     if (StringEqualsNoCase(key, "ItemSwitchLR")) {
