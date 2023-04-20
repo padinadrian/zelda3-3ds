@@ -48,8 +48,8 @@ static bool OpenGLRenderer_Init(SDL_Window *window) {
       Die("You need OpenGL 3.3");
   } else {
     int majorVersion = 0, minorVersion = 0;
-    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &majorVersion);
-    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minorVersion);
+    // SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &majorVersion);
+    // SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minorVersion);
     if (majorVersion < 3)
       Die("You need OpenGL ES 3.0");
 

@@ -5,6 +5,7 @@ build
 *.a
 *.elf
 *.3dsx
+*.smdh
 *.3ds
 *.cia
 *.dat
