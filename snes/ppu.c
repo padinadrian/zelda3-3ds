@@ -8,6 +8,9 @@
 #include "ppu.h"
 #include "../types.h"
 
+#include "platform/3ds/profiling.h"
+extern Array profilingArrays[8];
+
 static const uint8 kSpriteSizes[8][2] = {
   {8, 16}, {8, 32}, {8, 64}, {16, 32},
   {16, 64}, {32, 64}, {16, 32}, {16, 32}
@@ -159,6 +162,11 @@ static inline void ClearBackdrop(PpuPixelPrioBufs *buf) {
 
 
 void ppu_runLine(Ppu *ppu, int line) {
+
+  // Profiling
+  static TickCounter counter;
+  osTickCounterStart(&counter);
+  
   if(line != 0) {
     if (ppu->mosaicSize != ppu->lastMosaicModulo) {
       int mod = ppu->mosaicSize;
@@ -179,7 +187,13 @@ void ppu_runLine(Ppu *ppu, int line) {
     }
 
     if (ppu->renderFlags & kPpuRenderFlags_NewRenderer) {
+
+      osTickCounterUpdate(&counter);
       PpuDrawWholeLine(ppu, line);
+      osTickCounterUpdate(&counter);
+      Array* ppuDrawWholeLineArray = (profilingArrays + 1);
+      ArrayPush(ppuDrawWholeLineArray, osTickCounterRead(&counter));
+
     } else {
       if (ppu->mode == 7)
         ppu_calculateMode7Starts(ppu, line);
@@ -813,33 +827,72 @@ static void PpuDrawBackgrounds(Ppu *ppu, int y, bool sub) {
 //  1: BG3 tiles with priority 0
 //  0: backdrop
 
+  // Profiling
+  static TickCounter counter;
+  osTickCounterStart(&counter);
+  Array* profilingArrayPtr;
+
   if (ppu->mode == 1) {
-    if (ppu->lineHasSprites)
+    osTickCounterUpdate(&counter);
+    if (ppu->lineHasSprites) {
       PpuDrawSprites(ppu, y, sub, true);
+    }
+    osTickCounterUpdate(&counter);
+    profilingArrayPtr = (profilingArrays + 2);
+    ArrayPush(profilingArrayPtr, osTickCounterRead(&counter));
 
-    if (IS_MOSAIC_ENABLED(ppu, 0))
+    osTickCounterUpdate(&counter);
+    if (IS_MOSAIC_ENABLED(ppu, 0)) {
       PpuDrawBackground_4bpp_mosaic(ppu, y, sub, 0, 0xc000, 0x8000);
-    else
+    }
+    else {
       PpuDrawBackground_4bpp(ppu, y, sub, 0, 0xc000, 0x8000);
+    }
+    osTickCounterUpdate(&counter);
+    profilingArrayPtr = (profilingArrays + 3);
+    ArrayPush(profilingArrayPtr, osTickCounterRead(&counter));
 
-    if (IS_MOSAIC_ENABLED(ppu, 1))
+    osTickCounterUpdate(&counter);
+    if (IS_MOSAIC_ENABLED(ppu, 1)) {
       PpuDrawBackground_4bpp_mosaic(ppu, y, sub, 1, 0xb100, 0x7100);
-    else
+    }
+    else {
       PpuDrawBackground_4bpp(ppu, y, sub, 1, 0xb100, 0x7100);
+    }
+    osTickCounterUpdate(&counter);
+    profilingArrayPtr = (profilingArrays + 4);
+    ArrayPush(profilingArrayPtr, osTickCounterRead(&counter));
 
-    if (IS_MOSAIC_ENABLED(ppu, 2))
+    osTickCounterUpdate(&counter);
+    if (IS_MOSAIC_ENABLED(ppu, 2)) {
       PpuDrawBackground_2bpp_mosaic(ppu, y, sub, 2, 0xf200, 0x1200);
-    else
+    }
+    else {
       PpuDrawBackground_2bpp(ppu, y, sub, 2, 0xf200, 0x1200);
+    }
+    osTickCounterUpdate(&counter);
+    profilingArrayPtr = (profilingArrays + 5);
+    ArrayPush(profilingArrayPtr, osTickCounterRead(&counter));
   } else {
     // mode 7
+    osTickCounterUpdate(&counter);
     PpuDrawBackground_mode7(ppu, y, sub, 0xc000);
-    if (ppu->lineHasSprites)
+    if (ppu->lineHasSprites) {
       PpuDrawSprites(ppu, y, sub, false);
+    }
+    osTickCounterUpdate(&counter);
+    profilingArrayPtr = (profilingArrays + 6);
+    ArrayPush(profilingArrayPtr, osTickCounterRead(&counter));
   }
 }
 
 static NOINLINE void PpuDrawWholeLine(Ppu *ppu, uint y) {
+
+  // Profiling
+  static TickCounter counter;
+  osTickCounterStart(&counter);
+  Array* profilingArrayPtr;
+
   if (ppu->forcedBlank) {
     uint8 *dst = &ppu->renderBuffer[(y - 1) * ppu->renderPitch];
     size_t n = sizeof(uint32) * (256 + ppu->extraLeftRight * 2);
@@ -853,15 +906,24 @@ static NOINLINE void PpuDrawWholeLine(Ppu *ppu, uint y) {
   }
 
   // Default background is backdrop
+  // osTickCounterUpdate(&counter);
   ClearBackdrop(&ppu->bgBuffers[0]);
+  // osTickCounterUpdate(&counter);
+  // profilingArrayPtr = (profilingArrays + 2);
+  // ArrayPush(profilingArrayPtr, osTickCounterRead(&counter));
 
   // Render main screen
+  // osTickCounterUpdate(&counter);
   PpuDrawBackgrounds(ppu, y, false);
+  // osTickCounterUpdate(&counter);
+  // profilingArrayPtr = (profilingArrays + 3);
+  // ArrayPush(profilingArrayPtr, osTickCounterRead(&counter));
 
   // The 6:th bit is automatically zero, math is never applied to the first half of the sprites.
   uint32 math_enabled = ppu->mathEnabled;
 
   // Render also the subscreen?
+  // osTickCounterUpdate(&counter);
   bool rendered_subscreen = false;
   if (ppu->preventMathMode != 3 && ppu->addSubscreen && math_enabled) {
     ClearBackdrop(&ppu->bgBuffers[1]);
@@ -870,14 +932,21 @@ static NOINLINE void PpuDrawWholeLine(Ppu *ppu, uint y) {
       rendered_subscreen = true;
     }
   }
+  // osTickCounterUpdate(&counter);
+  // profilingArrayPtr = (profilingArrays + 4);
+  // ArrayPush(profilingArrayPtr, osTickCounterRead(&counter));
 
   // Color window affects the drawing mode in each region
   PpuWindows cwin;
+  // osTickCounterUpdate(&counter);
   PpuWindows_Calc(&cwin, ppu, 5);
   static const uint8 kCwBitsMod[8] = {
     0x00, 0xff, 0xff, 0x00,
     0xff, 0x00, 0xff, 0x00,
   };
+  // osTickCounterUpdate(&counter);
+  // profilingArrayPtr = (profilingArrays + 5);
+  // ArrayPush(profilingArrayPtr, osTickCounterRead(&counter));
   uint32 cw_clip_math = ((cwin.bits & kCwBitsMod[ppu->clipMode]) ^ kCwBitsMod[ppu->clipMode + 4]) |
                         ((cwin.bits & kCwBitsMod[ppu->preventMathMode]) ^ kCwBitsMod[ppu->preventMathMode + 4]) << 8;
 
@@ -885,6 +954,7 @@ static NOINLINE void PpuDrawWholeLine(Ppu *ppu, uint y) {
   
   dst += (ppu->extraLeftRight - ppu->extraLeftCur);
 
+  // osTickCounterUpdate(&counter);
   uint32 windex = 0;
   do {
     uint32 left = cwin.edges[windex] + kPpuExtraLeftRight, right = cwin.edges[windex + 1] + kPpuExtraLeftRight;
@@ -938,13 +1008,21 @@ static NOINLINE void PpuDrawWholeLine(Ppu *ppu, uint y) {
       } while (dst++, ++i < right);
     }
   } while (cw_clip_math >>= 1, ++windex < cwin.nr);
+  // osTickCounterUpdate(&counter);
+  // profilingArrayPtr = (profilingArrays + 6);
+  // ArrayPush(profilingArrayPtr, osTickCounterRead(&counter));
 
   // Clear out stuff on the sides.
+  // osTickCounterUpdate(&counter);
   if (ppu->extraLeftRight - ppu->extraLeftCur != 0)
     memset(dst_org, 0, sizeof(uint32) * (ppu->extraLeftRight - ppu->extraLeftCur));
   if (ppu->extraLeftRight - ppu->extraRightCur != 0)
     memset(dst_org + (256 + ppu->extraLeftRight * 2 - (ppu->extraLeftRight - ppu->extraRightCur)), 0,
         sizeof(uint32) * (ppu->extraLeftRight - ppu->extraRightCur));
+
+  // osTickCounterUpdate(&counter);
+  // profilingArrayPtr = (profilingArrays + 7);
+  // ArrayPush(profilingArrayPtr, osTickCounterRead(&counter));
 }
 
 static void ppu_handlePixel(Ppu* ppu, int x, int y) {

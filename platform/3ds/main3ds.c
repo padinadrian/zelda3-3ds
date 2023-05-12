@@ -35,10 +35,10 @@
 #include "util.h"
 #include "audio.h"
 
+#include "profiling.h"
 
 /* ===== Forwards ===== */
 
-void ShaderInit();
 // static bool LoadRom(const char *filename);
 static void LoadLinkGraphics();
 static void HandleInput(int keyCode, int modCode, bool pressed);
@@ -51,12 +51,13 @@ static void SwitchDirectory();
 
 /* ===== Enumerations ===== */
 
+// Config options
 enum {
-  kDefaultFullscreen = 0,
-  kMaxWindowScale = 10,
-  kDefaultFreq = 44100,
-  kDefaultChannels = 2,
-  kDefaultSamples = 2048,
+    kDefaultFullscreen = 0,
+    kMaxWindowScale = 10,
+    kDefaultFreq = 44100,
+    kDefaultChannels = 2,
+    kDefaultSamples = 2048,
 };
 
 
@@ -438,6 +439,22 @@ int main3ds(int args, char** argv) {
     // Debugging - fill screen pink to show unused portions.
     // fill_buffer((u32*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0), 0xFF0088FF);
 
+    // Profiling
+    TickCounter counter;
+    osTickCounterStart(&counter);
+
+    // 0 will be ZeldaRunFrame
+    Array* zeldaRunFrameArray = &(profilingArrays[0]);
+    ArrayInitialize(zeldaRunFrameArray, 20);
+
+    ArrayInitialize(&(profilingArrays[1]), 100);
+    ArrayInitialize(&(profilingArrays[2]), 100);
+    ArrayInitialize(&(profilingArrays[3]), 100);
+    ArrayInitialize(&(profilingArrays[4]), 100);
+    ArrayInitialize(&(profilingArrays[5]), 100);
+    ArrayInitialize(&(profilingArrays[6]), 100);
+    ArrayInitialize(&(profilingArrays[7]), 100);
+
     while(aptMainLoop()) {
 
         // Handle input
@@ -468,31 +485,55 @@ int main3ds(int args, char** argv) {
 
         // TODO: Audio mutex
         // SDL_LockMutex(g_audio_mutex);
-        before = osGetTime();
+        osTickCounterUpdate(&counter);
         bool is_replay = ZeldaRunFrame(inputs);
-        after = osGetTime();
+        osTickCounterUpdate(&counter);
+        ArrayPush(zeldaRunFrameArray, osTickCounterRead(&counter));
         // SDL_UnlockMutex(g_audio_mutex);
 
         frameCtr++;
 
+        // TODO: Debugging - only draw every other frame
+        if ((frameCtr % 2) == 0) {
+            osTickCounterUpdate(&counter);
+            DrawPpuFrameWithPerf();
+            osTickCounterUpdate(&counter);
+        }
+
         // Debugging
         if ((frameCtr % 10) == 0) {
             printf("\x1b[1;1H frameCtr:         %lu\x1b[K", frameCtr);
-            printf("\x1b[2;1H ZeldaRunFrame:    %lu\x1b[K", after - before);
-        }
 
-        // TODO: Debugging - only draw every tenth frame
-        // if ((frameCtr % 10) == 0) {
-            before = osGetTime();
-            DrawPpuFrameWithPerf();
-            after = osGetTime();
-        // }
+            double average = ArrayAverage(zeldaRunFrameArray);
+            printf("\x1b[2;1H ZeldaRunFrame:        %f\x1b[K", average);
 
-        // Debugging
-        if ((frameCtr % 10) == 0) {
-            printf("\x1b[3;1H DrawPpuFrame:     %lu\x1b[K", after - before);
-            printf("\x1b[4;1H hidKeysHeld:      %lu\x1b[K", hidKeysHeld());
-            printf("\x1b[5;1H inputs:           %lu\x1b[K", inputs);
+            printf("\x1b[3;1H DrawPpuFrame:         %f\x1b[K", osTickCounterRead(&counter));
+
+            average = ArrayAverage(profilingArrays + 1);
+            printf("\x1b[4;1H ppuDrawWholeLine:     %f\x1b[K", average);
+            
+            average = ArrayAverage(profilingArrays + 2);
+            printf("\x1b[5;1H PpuDrawSprites:       %f\x1b[K", average);
+            
+            average = ArrayAverage(profilingArrays + 3);
+            printf("\x1b[6;1H DrawBackground_4bpp:  %f\x1b[K", average);
+
+            average = ArrayAverage(profilingArrays + 4);
+            printf("\x1b[7;1H DrawBackground_4bpp:  %f\x1b[K", average);
+            
+            average = ArrayAverage(profilingArrays + 5);
+            printf("\x1b[8;1H DrawBackground_2bpp:  %f\x1b[K", average);
+            
+            average = ArrayAverage(profilingArrays + 6);
+            printf("\x1b[9;1H DrawBackground_mode7: %f\x1b[K", average);
+
+            average = ArrayAverage(profilingArrays + 7);
+            printf("\x1b[9;1H everythingElse:       %f\x1b[K", average);
+
+            // Clear profiling arrays
+            for (size_t i = 0; i < 8; ++i) {
+                ArrayClear(profilingArrays + i);
+            }
         }
 
         // Cleanup buffers and wait for vblank
@@ -501,6 +542,8 @@ int main3ds(int args, char** argv) {
         gspWaitForVBlank();
     }
     // free(g_audiobuffer);
+
+    ArrayDestroy(zeldaRunFrameArray);
 
     g_renderer_funcs.Destroy();
     gfxExit();

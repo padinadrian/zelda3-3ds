@@ -12,6 +12,10 @@
 #include "audio.h"
 #include "assets.h"
 
+#include "platform/3ds/profiling.h"
+extern Array profilingArrays[8];
+
+
 ZeldaEnv g_zenv;
 uint8 g_ram[131072];
 
