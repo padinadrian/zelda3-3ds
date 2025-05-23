@@ -3,6 +3,7 @@
 
 #define WIDTH 240
 #define HEIGHT 400
+#define BUFFER_SIZE (WIDTH * HEIGHT)
 
 #define COLOR_RED   0xFF0000FF
 #define COLOR_GREEN 0x00FF00FF
@@ -15,11 +16,8 @@ enum {
 };
 
 void fill_buffer(u32* buffer, u32 color) {
-    int x, y;
-    for (y = 0; y < HEIGHT; y++) {
-        for (x = 0; x < WIDTH; x++) {
-            buffer[x + (y * WIDTH)] = color;
-        }
+    for (size_t i = 0; i < BUFFER_SIZE; ++i) {
+        buffer[i] = color;
     }
 }
 
