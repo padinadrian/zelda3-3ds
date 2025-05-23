@@ -1,0 +1,9 @@
+/bin
+/build
+/*.nacp
+/*.nro
+/*.elf
+/*.3dsx
+/*.smdh
+/*.t3x
+/*.bcfnt
