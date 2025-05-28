@@ -30,7 +30,7 @@ Snes* snes_init(uint8_t *ram) {
   snes->cpu = cpu_init(snes, 0);
   snes->apu = apu_init();
   snes->dma = dma_init(snes);
-  snes->ppu = ppu_init(snes);
+  snes->ppu = ppu_init();
   snes->cart = cart_init(snes);
   snes->input1 = input_init(snes);
   snes->input2 = input_init(snes);
@@ -60,7 +60,7 @@ void snes_saveload(Snes *snes, SaveLoadFunc *func, void *ctx) {
   func(ctx, &snes->hPos, offsetof(Snes, openBus) + 1 - offsetof(Snes, hPos));
   func(ctx, snes->ram, 0x20000);
   func(ctx, &snes->ramAdr, 4);
-    
+
 
   snes->disableHpos = false;
 }

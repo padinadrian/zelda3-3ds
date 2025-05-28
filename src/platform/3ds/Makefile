@@ -41,10 +41,9 @@ GRAPHICS	:=	gfx
 ROMFS		:=	romfs
 GFXBUILD	:=	$(ROMFS)/gfx
 
-# ROOT		:=	../..
-# SOURCES		:=	$(SOURCES) $(ROOT) $(ROOT)/snes
-
-# INCLUDES	:= $(INCLUDES) $(ROOT) $(ROOT)/snes ext/SDL/include
+ROOT		:=	../../..
+SOURCES		:=	$(ROOT)/src $(ROOT)/snes $(ROOT)/src/platform/3ds/src
+INCLUDES	:=	$(INCLUDES) $(ROOT) $(ROOT)/src ext/SDL/include
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -96,7 +95,8 @@ GFXFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.t3s)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 
 # Exclude top-level main.c
-CFILES		:=	$(filter-out $(ROOT)/main.c, $(CFILES))
+CFILES		:=	$(filter-out main.c, $(CFILES))
+CFILES		:=	$(CFILES) $(notdir $(ROOT)/src/platform/3ds/src/main.c)
 
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C
