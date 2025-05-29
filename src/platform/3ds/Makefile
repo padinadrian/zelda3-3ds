@@ -96,7 +96,6 @@ BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 
 # Exclude top-level main.c
 CFILES		:=	$(filter-out main.c, $(CFILES))
-CFILES		:=	$(CFILES) $(notdir $(ROOT)/src/platform/3ds/src/main.c)
 
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C
