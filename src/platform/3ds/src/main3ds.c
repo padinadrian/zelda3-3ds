@@ -15,6 +15,9 @@
 #include "util.h"
 #include "audio.h"
 
+#include "SDL.h"
+#include "render.h"
+
 #define WIDTH 240
 #define HEIGHT 400
 #define BUFFER_SIZE (WIDTH * HEIGHT)
@@ -29,16 +32,46 @@ enum {
     STATE_BLUE_TO_RED = 2,
 };
 
-// Static data
-const uint8 *g_asset_ptrs[kNumberOfAssets];
-uint32 g_asset_sizes[kNumberOfAssets];
-
 // Forwards
 void fill_buffer(u32* buffer, u32 color);
 void Die(const char *error);
 static void LoadAssets();
 static void LoadLinkGraphics();
+static void DrawPpuFrameWithPerf();
+static void RenderNumber(uint8 *dst, size_t pitch, int n, bool big);
 
+// Static data
+const uint8 *g_asset_ptrs[kNumberOfAssets];
+uint32 g_asset_sizes[kNumberOfAssets];
+
+static uint8 g_paused, g_turbo, g_replay_turbo = true, g_cursor = true;
+static uint8 g_current_window_scale;
+static uint8 g_gamepad_buttons;
+static int g_input1_state;
+static bool g_display_perf;
+static int g_curr_fps;
+static int g_ppu_render_flags = 0;
+static int g_snes_width, g_snes_height;
+static struct RendererFuncs g_renderer_funcs;
+static uint32 g_gamepad_modifiers;
+static uint16 g_gamepad_last_cmd[kGamepadBtn_Count];
+
+enum {
+  kDefaultFullscreen = 0,
+  kMaxWindowScale = 10,
+  kDefaultFreq = 44100,
+  kDefaultChannels = 2,
+  kDefaultSamples = 2048,
+};
+
+static const char kWindowTitle[] = "The Legend of Zelda: A Link to the Past";
+
+static const struct RendererFuncs renderFuncs3ds  = {
+    &RendererInitialize_3ds,
+    &RendererDestroy_3ds,
+    &RendererBeginDraw_3ds,
+    &RendererEndDraw_3ds,
+};
 
 int main(int argc, char** argv)
 {
@@ -65,6 +98,39 @@ int main(int argc, char** argv)
     printf("Initializing Zelda...\n");
     ZeldaInitialize();
     printf("Zelda initialized.\n");
+
+    // Configuration
+    printf("Loading configuration...\n");
+    g_zenv.ppu->extraLeftRight = UintMin(g_config.extended_aspect_ratio, kPpuExtraLeftRight);
+    g_snes_width = (g_config.extended_aspect_ratio * 2 + 256);
+    g_snes_height = (g_config.extend_y ? 240 : 224);
+
+    // Delay actually setting those features in ram until any snapshots finish playing.
+    g_wanted_zelda_features = g_config.features0;
+
+    g_ppu_render_flags = g_config.new_renderer * kPpuRenderFlags_NewRenderer |
+                        g_config.enhanced_mode7 * kPpuRenderFlags_4x4Mode7 |
+                        g_config.extend_y * kPpuRenderFlags_Height240 |
+                        g_config.no_sprite_limits * kPpuRenderFlags_NoSpriteLimits;
+    // ZeldaEnableMsu(g_config.enable_msu);
+    ZeldaSetLanguage(g_config.language);
+    printf("Config loaded.\n");
+
+    // TODO: Audio setup
+
+    // TODO: Renderer setup
+    g_renderer_funcs = renderFuncs3ds;
+
+    printf("Reading SRAM...\n");
+    ZeldaReadSram();
+    printf("SRAM read.\n");
+
+    bool running = true;
+    uint32 curTick = 0;
+    uint32 frameCtr = 0;
+    bool audiopaused = true;
+
+    printf("Entering main loop...\n");
 
     printf("\x1b[30;16HPress Start to exit.");
 
@@ -111,10 +177,26 @@ int main(int argc, char** argv)
         }
 
         uint32_t color = 0xFF | (red << 24) | (green << 16) | (blue << 8);
-
-        // Fill top screen with red
         fill_buffer((uint32_t*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0), color);
 
+        // TODO: Get inputs
+        int inputs = g_input1_state;
+        if (g_input1_state & 0xf0) {
+            g_gamepad_buttons = 0;
+        }
+        inputs |= g_gamepad_buttons;
+
+        // LockMutex(g_audio_mutex)
+        bool is_replay = ZeldaRunFrame(inputs);
+        // UnlockMutex(g_audio_mutex)
+
+        frameCtr++;
+
+        if ((g_turbo ^ (is_replay & g_replay_turbo)) && (frameCtr & (g_turbo ? 0xf : 0x7f)) != 0) {
+            continue;
+        }
+
+        DrawPpuFrameWithPerf();
     }
 
     // Close program
@@ -229,5 +311,93 @@ static void LoadLinkGraphics() {
         }
         free(file);
     }
+}
+
+MemBlk FindInAssetArray(int asset, int idx) {
+    return FindIndexInMemblk((MemBlk) { g_asset_ptrs[asset], g_asset_sizes[asset] }, idx);
+}
+
+static void DrawPpuFrameWithPerf() {
+    int render_scale = PpuGetCurrentRenderScale(g_zenv.ppu, g_ppu_render_flags);
+    uint8 *pixel_buffer = 0;
+    int pitch = 0;
+
+    g_renderer_funcs.BeginDraw(g_snes_width * render_scale,
+                                g_snes_height * render_scale,
+                                &pixel_buffer, &pitch);
+    if (g_display_perf || g_config.display_perf_title) {
+        static float history[64], average;
+        static int history_pos;
+        uint64 before = osGetTime();
+        ZeldaDrawPpuFrame(pixel_buffer, pitch, g_ppu_render_flags);
+        uint64 after = osGetTime();
+        float v = (double)SDL_GetPerformanceFrequency() / (after - before);
+        average += v - history[history_pos];
+        history[history_pos] = v;
+        history_pos = (history_pos + 1) & 63;
+        g_curr_fps = average * (1.0f / 64);
+    } else {
+        ZeldaDrawPpuFrame(pixel_buffer, pitch, g_ppu_render_flags);
+    }
+    // if (g_display_perf) {
+    //     RenderNumber(pixel_buffer + pitch * render_scale, pitch, g_curr_fps, render_scale == 4);
+    // }
+    g_renderer_funcs.EndDraw();
+}
+
+static void RenderDigit(uint8 *dst, size_t pitch, int digit, uint32 color, bool big) {
+    static const uint8 kFont[] = {
+        0x1c, 0x36, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x36, 0x1c,
+        0x18, 0x1c, 0x1e, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x7e,
+        0x3e, 0x63, 0x60, 0x30, 0x18, 0x0c, 0x06, 0x03, 0x63, 0x7f,
+        0x3e, 0x63, 0x60, 0x60, 0x3c, 0x60, 0x60, 0x60, 0x63, 0x3e,
+        0x30, 0x38, 0x3c, 0x36, 0x33, 0x7f, 0x30, 0x30, 0x30, 0x78,
+        0x7f, 0x03, 0x03, 0x03, 0x3f, 0x60, 0x60, 0x60, 0x63, 0x3e,
+        0x1c, 0x06, 0x03, 0x03, 0x3f, 0x63, 0x63, 0x63, 0x63, 0x3e,
+        0x7f, 0x63, 0x60, 0x60, 0x30, 0x18, 0x0c, 0x0c, 0x0c, 0x0c,
+        0x3e, 0x63, 0x63, 0x63, 0x3e, 0x63, 0x63, 0x63, 0x63, 0x3e,
+        0x3e, 0x63, 0x63, 0x63, 0x7e, 0x60, 0x60, 0x60, 0x30, 0x1e,
+    };
+    const uint8 *p = kFont + digit * 10;
+    if (!big) {
+        for (int y = 0; y < 10; y++, dst += pitch) {
+            int v = *p++;
+            for (int x = 0; v; x++, v >>= 1) {
+                if (v & 1) {
+                    ((uint32 *)dst)[x] = color;
+                }
+            }
+        }
+    } else {
+        for (int y = 0; y < 10; y++, dst += pitch * 2) {
+            int v = *p++;
+            for (int x = 0; v; x++, v >>= 1) {
+                if (v & 1) {
+                    ((uint32 *)dst)[x * 2 + 1] = ((uint32 *)dst)[x * 2] = color;
+                    ((uint32 *)(dst+pitch))[x * 2 + 1] = ((uint32 *)(dst + pitch))[x * 2] = color;
+                }
+            }
+        }
+    }
+}
+
+static void RenderNumber(uint8 *dst, size_t pitch, int n, bool big) {
+    char buf[32], *s;
+    int i;
+    sprintf(buf, "%d", n);
+    for (s = buf, i = 2 * 4; *s; s++, i += 8 * 4) {
+        RenderDigit(dst + ((pitch + i + 4) << big), pitch, *s - '0', 0x404040, big);
+    }
+    for (s = buf, i = 2 * 4; *s; s++, i += 8 * 4) {
+        RenderDigit(dst + (i << big), pitch, *s - '0', 0xffffff, big);
+    }
+}
+
+void ZeldaApuLock() {
+    // SDL_LockMutex(g_audio_mutex);
+}
+
+void ZeldaApuUnlock() {
+    // SDL_UnlockMutex(g_audio_mutex);
 }
 
