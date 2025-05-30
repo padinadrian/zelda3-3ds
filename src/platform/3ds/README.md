@@ -32,6 +32,7 @@ and run the game.
 In order of importance:
 
 * BUG: Game runs at half speed (or slower) due to slow render time
+* FET: Saving not yet supported
 * FET: No audio / music
 * FET: Support for widescreen mode
 * BUG: Enhanced mode 7 causes the game to crash, so it must be disabled.
