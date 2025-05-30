@@ -21,3 +21,12 @@ python assets/restool.py --extract-from-rom
 cp zelda3_assets.dat src/platform/3ds/romfs/.
 ```
 
+## TODOs
+
+In order of importance:
+
+* FET: Button inputs
+* BUG: Game runs at half speed due to slow render time
+* FET: No audio / music
+* FET: Support for widescreen mode
+* BUG: Enhanced mode 7 causes the game to crash, so it must be disabled.

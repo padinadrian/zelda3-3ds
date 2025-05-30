@@ -18,7 +18,7 @@ static int g_width, g_height;
  * Initialize the renderer.
  */
 bool RendererInitialize_3ds(SDL_Window* window) {
-    // TODO
+    // Nothing
     return NULL;
 }
 
@@ -26,7 +26,7 @@ bool RendererInitialize_3ds(SDL_Window* window) {
  * Destroy the renderer.
  */
 void RendererDestroy_3ds() {
-    // TODO
+    // Nothing
 }
 
 /**

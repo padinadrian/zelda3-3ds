@@ -136,7 +136,7 @@ int main(int argc, char** argv)
 
     // TODO: Audio setup
 
-    // TODO: Renderer setup
+    // Renderer setup
     g_renderer_funcs = renderFuncs3ds;
 
     printf("Reading SRAM...\n");

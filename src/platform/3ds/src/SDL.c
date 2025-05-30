@@ -14,13 +14,14 @@ void SDL_GL_SetAttribute(int, int) {
 
 /** Returns a platform-specific count per second. */
 uint64_t SDL_GetPerformanceFrequency() {
-    // TODO: No clue what this should be.
-    // Copied this value from the PSP implementation.
+    // This value is the number of clock ticks per second.
+    // Since ticks are measured in milliseconds, this value is millis per second.
     return 1000;
 }
 
 /** Get a key code from a human-readable name. */
 SDL_Keycode SDL_GetKeyFromName(const char *name) {
+    // TODO: Copy implementation from SDL source.
     SDL_Keycode sdl_keycode;
     return sdl_keycode;
 }
