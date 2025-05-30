@@ -57,14 +57,16 @@ static uint32 g_gamepad_modifiers;
 static uint16 g_gamepad_last_cmd[kGamepadBtn_Count];
 
 enum {
-  kDefaultFullscreen = 0,
-  kMaxWindowScale = 10,
-  kDefaultFreq = 44100,
-  kDefaultChannels = 2,
-  kDefaultSamples = 2048,
+    kDefaultFullscreen = 0,
+    kMaxWindowScale = 10,
+    kDefaultFreq = 44100,
+    kDefaultChannels = 2,
+    kDefaultSamples = 2048,
 };
 
 static const char kWindowTitle[] = "The Legend of Zelda: A Link to the Past";
+static const char config_file[] = "romfs:/zelda3.ini";
+static const char asset_file[] = "romfs:/zelda3_assets.dat";
 
 static const struct RendererFuncs renderFuncs3ds  = {
     &RendererInitialize_3ds,
@@ -87,6 +89,11 @@ int main(int argc, char** argv)
     consoleInit(GFX_BOTTOM, NULL);
     printf("Starting up.\n");
 
+    // Configuration
+    printf("Loading configuration...\n");
+    ParseConfigFile(config_file);
+    printf("Config loaded.\n");
+
     printf("Loading assets...\n");
     LoadAssets();
     printf("Assets loaded.\n");
@@ -99,8 +106,9 @@ int main(int argc, char** argv)
     ZeldaInitialize();
     printf("Zelda initialized.\n");
 
-    // Configuration
-    printf("Loading configuration...\n");
+    g_config.extend_y = true;
+    g_config.new_renderer = true;
+
     g_zenv.ppu->extraLeftRight = UintMin(g_config.extended_aspect_ratio, kPpuExtraLeftRight);
     g_snes_width = (g_config.extended_aspect_ratio * 2 + 256);
     g_snes_height = (g_config.extend_y ? 240 : 224);
@@ -112,9 +120,15 @@ int main(int argc, char** argv)
                         g_config.enhanced_mode7 * kPpuRenderFlags_4x4Mode7 |
                         g_config.extend_y * kPpuRenderFlags_Height240 |
                         g_config.no_sprite_limits * kPpuRenderFlags_NoSpriteLimits;
+
+    // Enable/disable performance measurements
+    g_display_perf = true;
+
+    // TODO: Enable music
     // ZeldaEnableMsu(g_config.enable_msu);
+
+    // Set the language
     ZeldaSetLanguage(g_config.language);
-    printf("Config loaded.\n");
 
     // TODO: Audio setup
 
@@ -132,10 +146,16 @@ int main(int argc, char** argv)
 
     printf("Entering main loop...\n");
 
-    printf("\x1b[30;16HPress Start to exit.");
+    // printf("\x1b[30;16HPress Start to exit.");
+    printf("Press Start to exit.\n");
 
     uint32_t red = 0xFF, green = 0, blue = 0;
     uint32_t state = STATE_RED_TO_GREEN;
+
+    // Debug; set background screen to pink
+    fill_buffer((uint32_t*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0), COLOR_RED | COLOR_BLUE);
+    gfxSwapBuffers();
+    fill_buffer((uint32_t*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0), COLOR_RED | COLOR_BLUE);
 
     // Main loop
     while(aptMainLoop()) {
@@ -175,9 +195,6 @@ int main(int argc, char** argv)
                 break;
             }
         }
-
-        uint32_t color = 0xFF | (red << 24) | (green << 16) | (blue << 8);
-        fill_buffer((uint32_t*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0), color);
 
         // TODO: Get inputs
         int inputs = g_input1_state;
@@ -227,7 +244,7 @@ void Die(const char *error) {
 
 static void LoadAssets() {
     size_t length = 0;
-    uint8 *data = ReadWholeFile("romfs:/zelda3_assets.dat", &length);
+    uint8 *data = ReadWholeFile(asset_file, &length);
     if (!data) {
         size_t bps_length, bps_src_length;
         uint8 *bps, *bps_src;
@@ -323,15 +340,15 @@ static void DrawPpuFrameWithPerf() {
     int pitch = 0;
 
     g_renderer_funcs.BeginDraw(g_snes_width * render_scale,
-                                g_snes_height * render_scale,
-                                &pixel_buffer, &pitch);
+                               g_snes_height * render_scale,
+                               &pixel_buffer, &pitch);
     if (g_display_perf || g_config.display_perf_title) {
         static float history[64], average;
         static int history_pos;
         uint64 before = osGetTime();
         ZeldaDrawPpuFrame(pixel_buffer, pitch, g_ppu_render_flags);
         uint64 after = osGetTime();
-        float v = (double)SDL_GetPerformanceFrequency() / (after - before);
+        float v = (double)(SDL_GetPerformanceFrequency() / (after - before));
         average += v - history[history_pos];
         history[history_pos] = v;
         history_pos = (history_pos + 1) & 63;
@@ -339,9 +356,9 @@ static void DrawPpuFrameWithPerf() {
     } else {
         ZeldaDrawPpuFrame(pixel_buffer, pitch, g_ppu_render_flags);
     }
-    // if (g_display_perf) {
-    //     RenderNumber(pixel_buffer + pitch * render_scale, pitch, g_curr_fps, render_scale == 4);
-    // }
+    if (g_display_perf) {
+        RenderNumber(pixel_buffer + pitch * render_scale, pitch, g_curr_fps, render_scale == 4);
+    }
     g_renderer_funcs.EndDraw();
 }
 

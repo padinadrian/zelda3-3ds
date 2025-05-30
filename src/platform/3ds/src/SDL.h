@@ -2,6 +2,7 @@
 #define ZELDA3_3DS_SDL_H_
 
 #include <stdint.h>
+#include <SDL_keycode.h>
 
 // Forwards
 uint64_t SDL_GetPerformanceFrequency();
