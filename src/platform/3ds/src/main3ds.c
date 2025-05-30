@@ -1,5 +1,6 @@
-#include <3ds.h>
 #include <stdint.h>
+
+#include <3ds.h>
 
 #include "snes/ppu.h"
 
@@ -32,7 +33,8 @@ enum {
     STATE_BLUE_TO_RED = 2,
 };
 
-// Forwards
+/* ========== Function Forwards ========== */
+
 void fill_buffer(u32* buffer, u32 color);
 void Die(const char *error);
 static void LoadAssets();
@@ -40,7 +42,8 @@ static void LoadLinkGraphics();
 static void DrawPpuFrameWithPerf();
 static void RenderNumber(uint8 *dst, size_t pitch, int n, bool big);
 
-// Static data
+/* ========== Static Data ========== */
+
 const uint8 *g_asset_ptrs[kNumberOfAssets];
 uint32 g_asset_sizes[kNumberOfAssets];
 
@@ -56,15 +59,6 @@ static struct RendererFuncs g_renderer_funcs;
 static uint32 g_gamepad_modifiers;
 static uint16 g_gamepad_last_cmd[kGamepadBtn_Count];
 
-enum {
-    kDefaultFullscreen = 0,
-    kMaxWindowScale = 10,
-    kDefaultFreq = 44100,
-    kDefaultChannels = 2,
-    kDefaultSamples = 2048,
-};
-
-static const char kWindowTitle[] = "The Legend of Zelda: A Link to the Past";
 static const char config_file[] = "romfs:/zelda3.ini";
 static const char asset_file[] = "romfs:/zelda3_assets.dat";
 
@@ -75,10 +69,20 @@ static const struct RendererFuncs renderFuncs3ds  = {
     &RendererEndDraw_3ds,
 };
 
+// Config flags
+enum {
+    kDefaultFullscreen = 0,
+    kMaxWindowScale = 10,
+    kDefaultFreq = 44100,
+    kDefaultChannels = 2,
+    kDefaultSamples = 2048,
+};
+
+/* ========== Function Forwards ========== */
+
 int main(int argc, char** argv)
 {
     // Initialize services
-    // gfxInitDefault();
     romfsInit();
 
     // Initialize frame buffers
@@ -149,10 +153,7 @@ int main(int argc, char** argv)
     // printf("\x1b[30;16HPress Start to exit.");
     printf("Press Start to exit.\n");
 
-    uint32_t red = 0xFF, green = 0, blue = 0;
-    uint32_t state = STATE_RED_TO_GREEN;
-
-    // Debug; set background screen to pink
+    // Debug: Set background screen to pink
     fill_buffer((uint32_t*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0), COLOR_RED | COLOR_BLUE);
     gfxSwapBuffers();
     fill_buffer((uint32_t*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0), COLOR_RED | COLOR_BLUE);
@@ -167,33 +168,6 @@ int main(int argc, char** argv)
         uint32_t pressed = hidKeysDown();
         if (pressed & KEY_START) {
             break; // break in order to return to hbmenu
-        }
-
-        switch (state) {
-            case STATE_RED_TO_GREEN: {
-                red -= 1;
-                green += 1;
-                if (red == 0) {
-                    state = STATE_GREEN_TO_BLUE;
-                }
-                break;
-            }
-            case STATE_GREEN_TO_BLUE: {
-                green -= 1;
-                blue += 1;
-                if (green == 0) {
-                    state = STATE_BLUE_TO_RED;
-                }
-                break;
-            }
-            case STATE_BLUE_TO_RED: {
-                blue -= 1;
-                red += 1;
-                if (blue == 0) {
-                    state = STATE_RED_TO_GREEN;
-                }
-                break;
-            }
         }
 
         // TODO: Get inputs
@@ -221,15 +195,16 @@ int main(int argc, char** argv)
     return 0;
 }
 
-// Functions
+/* ========== Functions ========== */
 
+/** Set the entire screen to a single color. */
 void fill_buffer(u32* buffer, u32 color) {
     for (size_t i = 0; i < BUFFER_SIZE; ++i) {
         buffer[i] = color;
     }
 }
 
-// Halt the program if we run into an error
+/** Halt the program if we run into an error. */
 void Die(const char *error) {
     fprintf(stderr, "Error: %s\n", error);
     while(aptMainLoop()) {
@@ -242,24 +217,12 @@ void Die(const char *error) {
     exit(1);
 }
 
+/** Load assets (sprites, backgrounds, etc.) from asset file. */
 static void LoadAssets() {
     size_t length = 0;
     uint8 *data = ReadWholeFile(asset_file, &length);
     if (!data) {
-        size_t bps_length, bps_src_length;
-        uint8 *bps, *bps_src;
-        bps = ReadWholeFile("zelda3_assets.bps", &bps_length);
-        if (!bps) {
-            Die("Failed to read zelda3_assets.dat. Please see the README for information about how you get this file.");
-        }
-        bps_src = ReadWholeFile("zelda3.sfc", &bps_src_length);
-        if (!bps_src) {
-            Die("Missing file: zelda3.sfc");
-        }
-        data = ApplyBps(bps_src, bps_src_length, bps, bps_length, &length);
-        if (!data) {
-            Die("Unable to apply zelda3_assets.bps. Please make sure you got the right version of 'zelda3.sfc'");
-        }
+        Die("Failed to read zelda3_assets.dat. Please see the README for information about how you get this file.");
     }
 
     static const char kAssetsSig[] = { kAssets_Sig };
@@ -284,13 +247,19 @@ static void LoadAssets() {
         offset += size;
     }
 
-    if (g_config.features0 & kFeatures0_DimFlashes) { // patch dungeon floor palettes
+    // Patch dungeon floor palettes
+    if (g_config.features0 & kFeatures0_DimFlashes) {
         kPalette_DungBgMain[0x484] = 0x70;
         kPalette_DungBgMain[0x485] = 0x95;
         kPalette_DungBgMain[0x486] = 0x57;
     }
 }
 
+/**
+ * Parse custom Link graphics from file.
+ *
+ * TODO: Not yet supported
+ */
 static bool ParseLinkGraphics(uint8 *file, size_t length) {
     if (length < 27 || memcmp(file, "ZSPR", 4) != 0) {
         return false;
@@ -318,6 +287,11 @@ static bool ParseLinkGraphics(uint8 *file, size_t length) {
     return true;
 }
 
+/**
+ * Load custom Link graphics from file.
+ *
+ * TODO: Not yet supported
+ */
 static void LoadLinkGraphics() {
     if (g_config.link_graphics) {
         fprintf(stderr, "Loading Link Graphics: %s\n", g_config.link_graphics);
@@ -330,10 +304,12 @@ static void LoadLinkGraphics() {
     }
 }
 
+/** Find a specific asset in the asset array. */
 MemBlk FindInAssetArray(int asset, int idx) {
     return FindIndexInMemblk((MemBlk) { g_asset_ptrs[asset], g_asset_sizes[asset] }, idx);
 }
 
+/** Draw a full frame, and optionally the frame rate as well. */
 static void DrawPpuFrameWithPerf() {
     int render_scale = PpuGetCurrentRenderScale(g_zenv.ppu, g_ppu_render_flags);
     uint8 *pixel_buffer = 0;
@@ -362,6 +338,7 @@ static void DrawPpuFrameWithPerf() {
     g_renderer_funcs.EndDraw();
 }
 
+/** Draw the framerate digits on top of the frame. */
 static void RenderDigit(uint8 *dst, size_t pitch, int digit, uint32 color, bool big) {
     static const uint8 kFont[] = {
         0x1c, 0x36, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x36, 0x1c,
@@ -398,6 +375,7 @@ static void RenderDigit(uint8 *dst, size_t pitch, int digit, uint32 color, bool 
     }
 }
 
+/** Draw the framerate on top of the frame. */
 static void RenderNumber(uint8 *dst, size_t pitch, int n, bool big) {
     char buf[32], *s;
     int i;
@@ -410,10 +388,12 @@ static void RenderNumber(uint8 *dst, size_t pitch, int n, bool big) {
     }
 }
 
+/** Lock the audio mutex. */
 void ZeldaApuLock() {
     // SDL_LockMutex(g_audio_mutex);
 }
 
+/** Unlock the audio mutex. */
 void ZeldaApuUnlock() {
     // SDL_UnlockMutex(g_audio_mutex);
 }
