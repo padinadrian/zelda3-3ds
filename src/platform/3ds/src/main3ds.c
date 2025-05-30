@@ -27,6 +27,8 @@
 #define COLOR_GREEN 0x00FF00FF
 #define COLOR_BLUE  0x0000FFFF
 
+#define NUM_INPUTS 12
+
 enum {
     STATE_RED_TO_GREEN = 0,
     STATE_GREEN_TO_BLUE = 1,
@@ -41,6 +43,7 @@ static void LoadAssets();
 static void LoadLinkGraphics();
 static void DrawPpuFrameWithPerf();
 static void RenderNumber(uint8 *dst, size_t pitch, int n, bool big);
+static void ProcessGamepadInput();
 
 /* ========== Static Data ========== */
 
@@ -61,6 +64,21 @@ static uint16 g_gamepad_last_cmd[kGamepadBtn_Count];
 
 static const char config_file[] = "romfs:/zelda3.ini";
 static const char asset_file[] = "romfs:/zelda3_assets.dat";
+
+const int kInputsToCheck[NUM_INPUTS] = {
+    KEY_A,
+    KEY_B,
+    KEY_X,
+    KEY_Y,
+    KEY_UP,
+    KEY_DOWN,
+    KEY_LEFT,
+    KEY_RIGHT,
+    KEY_L,
+    KEY_R,
+    KEY_START,
+    KEY_SELECT,
+};
 
 static const struct RendererFuncs renderFuncs3ds  = {
     &RendererInitialize_3ds,
@@ -164,13 +182,11 @@ int main(int argc, char** argv)
         gfxFlushBuffers();
         gspWaitForVBlank();
 
+        // Process gamepad inputs
         hidScanInput();
-        uint32_t pressed = hidKeysDown();
-        if (pressed & KEY_START) {
-            break; // break in order to return to hbmenu
-        }
+        ProcessGamepadInput();
 
-        // TODO: Get inputs
+        // Clear gamepad inputs when joypad directional inputs to avoid wonkiness
         int inputs = g_input1_state;
         if (g_input1_state & 0xf0) {
             g_gamepad_buttons = 0;
@@ -398,3 +414,88 @@ void ZeldaApuUnlock() {
     // SDL_UnlockMutex(g_audio_mutex);
 }
 
+/** Handle button press or release. */
+static void HandleCommand(uint32 j, bool pressed) {
+    if (j <= kKeys_Controls_Last) {
+        static const uint8 kKbdRemap[] = { 0, 4, 5, 6, 7, 2, 3, 8, 0, 9, 1, 10, 11 };
+        if (pressed) {
+            g_input1_state |= 1 << kKbdRemap[j];
+        }
+        else {
+            g_input1_state &= ~(1 << kKbdRemap[j]);
+        }
+        return;
+    }
+
+    if (j == kKeys_Turbo) {
+        g_turbo = pressed;
+        return;
+    }
+
+    // TODO: Do I need this part?
+    // Everything that might access audio state
+    // (like SaveLoad and Reset) must have the lock.
+    // ZeldaApuLock();
+    // HandleCommand_Locked(j, pressed);
+    // ZeldaApuUnlock();
+}
+
+/** Handle input from the gamepad. */
+static void HandleGamepadInput(int button, bool pressed) {
+    if (!!(g_gamepad_modifiers & (1 << button)) == pressed) {
+        return;
+    }
+    g_gamepad_modifiers ^= 1 << button;
+    if (pressed) {
+        g_gamepad_last_cmd[button] = FindCmdForGamepadButton(button, g_gamepad_modifiers);
+    }
+    if (g_gamepad_last_cmd[button] != 0) {
+        HandleCommand(g_gamepad_last_cmd[button], pressed);
+    }
+}
+
+/**
+ * Convert an HID input to the internal gamepad enum.
+ *
+ * TODO: There is probably a more efficient way to do this with a lookup table.
+ */
+static int RemapButton(int button) {
+    switch (button) {
+        case KEY_A: return kGamepadBtn_A;
+        case KEY_B: return kGamepadBtn_B;
+        case KEY_X: return kGamepadBtn_X;
+        case KEY_Y: return kGamepadBtn_Y;
+        case KEY_SELECT: return kGamepadBtn_Back;   // TODO: Maybe??
+        // case SDL_CONTROLLER_BUTTON_GUIDE: return kGamepadBtn_Guide;  // Unknown
+        case KEY_START: return kGamepadBtn_Start;
+        case KEY_L: return kGamepadBtn_L1;
+        case KEY_R: return kGamepadBtn_R1;
+        case KEY_UP: return kGamepadBtn_DpadUp;
+        case KEY_DOWN: return kGamepadBtn_DpadDown;
+        case KEY_LEFT: return kGamepadBtn_DpadLeft;
+        case KEY_RIGHT: return kGamepadBtn_DpadRight;
+        default: return -1;
+    }
+}
+
+/** Convert the given inputs to gamepad events. */
+static void ProcessGamepadInputHelper(int inputs, bool pressed) {
+    for (int i = 0; i < NUM_INPUTS; ++i) {
+        if (inputs & kInputsToCheck[i]) {
+            int b = RemapButton(kInputsToCheck[i]);
+            if (b >= 0) {
+                HandleGamepadInput(b, pressed);
+            }
+        }
+    }
+
+}
+
+/** Get the inputs from the gamepad and convert them to events. */
+static void ProcessGamepadInput() {
+    // Check pressed inputs
+    ProcessGamepadInputHelper(hidKeysDown(), true);
+
+    // Check unpressed inputs
+    ProcessGamepadInputHelper(hidKeysUp(), false);
+}

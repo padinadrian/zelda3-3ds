@@ -21,12 +21,17 @@ python assets/restool.py --extract-from-rom
 cp zelda3_assets.dat src/platform/3ds/romfs/.
 ```
 
+4. Run the `make` command, which should create the output file `zelda3.3dsx`
+
+You can run this file in your favorite emulator, or use a modded 3DS to install
+and run the game.
+
+
 ## TODOs
 
 In order of importance:
 
-* FET: Button inputs
-* BUG: Game runs at half speed due to slow render time
+* BUG: Game runs at half speed (or slower) due to slow render time
 * FET: No audio / music
 * FET: Support for widescreen mode
 * BUG: Enhanced mode 7 causes the game to crash, so it must be disabled.
