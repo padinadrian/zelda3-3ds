@@ -55,22 +55,37 @@ void RendererBeginDraw_3ds(int width, int height, uint8_t **pixels, int *pitch) 
  * Translate and copy the rendered frame to the frame buffer.
  */
 void RendererEndDraw_3ds() {
-    uint32_t* frame_buffer = (uint32_t*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0);
-
     // Shift frame buffer 72 rows to center the image in the screen.
     // Default screen width is 256 pixels, 3DS top screen is 400 pixels
     // 400 - 256 = 144, 144 / 2 = 72
     // TODO: For widescreen this will need to be dynamic
+    uint32_t* frame_buffer = (uint32_t*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, 0, 0);
     frame_buffer += ((g_height * 72) - 1);
 
-    uint32_t pixel = 0, pbi = 0, fbi = 0;
-    for (uint32_t x = 0; x < g_width; ++x) {
-        for (uint32_t y = 0; y < g_height; ++y) {
-            pbi = (y * g_width) + x;
-            fbi = (x * g_height) + (g_height - y);
+    TickCounter ticker;
+    osTickCounterStart(&ticker);
 
-            pixel = g_pixel_buffer[pbi];
+    // Keep track of optimizations to this loop
+    // Attempt #1: 2.759173 ms
+    // Attempt #3: 2.756834 ms
+    uint32_t pixel = 0, height = 0, x_max = 0, fbi = 0;
+    uint32_t* pixel_buffer = g_pixel_buffer;
+    for (uint32_t y = 0; y < g_height; ++y) {
+        height = g_height - y;
+        for (uint32_t x = 0; x < g_width; ++x) {
+            fbi = (x * g_height) + height;
+            pixel = (*pixel_buffer++);
             frame_buffer[fbi] = (pixel >> 24) | (pixel << 8);   // Convert ARGB to RGBA
         }
     }
+
+    osTickCounterUpdate(&ticker);
+
+    // Debug: print how long the framebuffer copy takes
+    // static uint32_t counter = 0;
+    // counter++;
+    // if (counter == 60) {
+    //     counter = 0;
+    //     printf("Render copy to framebuf: %f ms\n", osTickCounterRead(&ticker));
+    // }
 }
