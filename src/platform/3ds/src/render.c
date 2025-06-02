@@ -68,14 +68,14 @@ void RendererEndDraw_3ds() {
     // Keep track of optimizations to this loop
     // Attempt #1: 2.759173 ms
     // Attempt #3: 2.756834 ms
-    uint32_t pixel = 0, height = 0, x_max = 0, fbi = 0;
+    uint32_t pixel = 0, height = 0, i = 0;
     uint32_t* pixel_buffer = g_pixel_buffer;
     for (uint32_t y = 0; y < g_height; ++y) {
         height = g_height - y;
         for (uint32_t x = 0; x < g_width; ++x) {
-            fbi = (x * g_height) + height;
+            i = (x * g_height) + height;
             pixel = (*pixel_buffer++);
-            frame_buffer[fbi] = (pixel >> 24) | (pixel << 8);   // Convert ARGB to RGBA
+            frame_buffer[i] = (pixel >> 24) | (pixel << 8);   // Convert ARGB to RGBA
         }
     }
 
